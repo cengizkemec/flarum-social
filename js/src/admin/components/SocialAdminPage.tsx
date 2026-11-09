@@ -252,6 +252,17 @@ export default class SocialAdminPage extends ExtensionPage {
         this.tab === 'moderation' ? this.moderationTab() : null,
         !['overview', 'rooms', 'moderation'].includes(this.tab) ? this.settingsTab(this.tab) : null,
       ]),
+      m('div', { className: 'SocialAdminCredit' }, [
+        m('i', { className: 'fas fa-code' }),
+        ' ',
+        app.translator.trans('cengizkemec-social.admin.credit'),
+        ' ',
+        m('a', {
+          href: 'https://cengizkemec.com.tr/',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        }, 'Cengiz Kemec'),
+      ]),
     ]);
   }
 }

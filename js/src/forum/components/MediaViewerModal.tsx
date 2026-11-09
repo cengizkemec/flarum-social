@@ -76,7 +76,6 @@ export default class MediaViewerModal extends Modal {
   renderItem(media: any): any {
     if (media.type === 'image') {
       return m('img', {
-        key: media.id,
         className: 'SocialMediaViewer-media',
         src: media.url,
         alt: media.name || '',
@@ -86,7 +85,6 @@ export default class MediaViewerModal extends Modal {
 
     if (media.type === 'video') {
       return m('video', {
-        key: media.id,
         className: 'SocialMediaViewer-media',
         src: media.url,
         controls: true,
@@ -95,7 +93,7 @@ export default class MediaViewerModal extends Modal {
       });
     }
 
-    return m('div', { key: media.id, className: 'SocialMediaViewer-document' }, [
+    return m('div', { className: 'SocialMediaViewer-document' }, [
       m('i', { className: 'fas fa-file-lines' }),
       m('p', {}, media.name),
       m('a', { className: 'Button Button--primary', href: media.url, target: '_blank', rel: 'noopener noreferrer' }, app.translator.trans('cengizkemec-social.forum.media.open')),
@@ -143,7 +141,6 @@ export default class MediaViewerModal extends Modal {
         this.renderItem(media),
         multiple
           ? m('button', {
-              key: 'previous',
               className: 'SocialMediaViewer-nav SocialMediaViewer-nav--prev',
               type: 'button',
               onclick: () => this.previous(),
@@ -152,7 +149,6 @@ export default class MediaViewerModal extends Modal {
           : null,
         multiple
           ? m('button', {
-              key: 'next',
               className: 'SocialMediaViewer-nav SocialMediaViewer-nav--next',
               type: 'button',
               onclick: () => this.next(),
@@ -165,7 +161,6 @@ export default class MediaViewerModal extends Modal {
             m('span', { className: 'SocialMediaViewer-counter' }, `${this.index + 1} / ${this.items.length}`),
             m('div', { className: 'SocialMediaViewer-dots' }, this.items.map((item: any, index: number) =>
               m('button', {
-                key: item.id,
                 type: 'button',
                 className: 'SocialMediaViewer-dot' + (index === this.index ? ' is-active' : ''),
                 onclick: () => this.goTo(index),

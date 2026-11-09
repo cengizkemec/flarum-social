@@ -20,11 +20,36 @@ class UserPresenter
         return $this->preferences[(int) $user->id];
     }
 
+    /**
+     * The profile-cover extension stores a relative filename. Resolve it
+     * through the extension's own disk so Social and Flarum show the same URL.
+     */
+    protected function nativeCover(User $user): ?string
+    {
+        $cover = $user->cover ?? null;
+
+        if (! $cover) {
+            return null;
+        }
+
+        if (preg_match('#^(https?:)?//#i', $cover) || str_starts_with($cover, '/')) {
+            return $cover;
+        }
+
+        try {
+            return resolve(\Illuminate\Contracts\Filesystem\Factory::class)
+                ->disk('sycho-profile-cover')
+                ->url($cover);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     public function basic(User $user): array
     {
         $lastSeen = $user->last_seen_at;
         $preferences = $this->preference($user);
-        $nativeCover = $user->cover ?? null;
+        $nativeCover = $this->nativeCover($user);
         $nativeBio = isset($user->bio) ? trim(strip_tags((string) $user->bio)) : null;
 
         return [
@@ -45,7 +70,7 @@ class UserPresenter
         $status = UserStatus::query()->find($user->id);
         $data = $this->basic($user);
         $nativeBio = isset($user->bio) ? trim(strip_tags((string) $user->bio)) : null;
-        $nativeCover = $user->cover ?? null;
+        $nativeCover = $this->nativeCover($user);
 
         $data = array_merge($data, [
             'headline' => $preferences->headline ?? null,

@@ -130,6 +130,10 @@ powershell -File tests/http-smoke.ps1 -BaseUrl http://localhost:8080 -AdminToken
 
 The HTTP smoke test expects a running Flarum installation and admin/member credentials in environment variables. See the script header. A fuller security matrix and residual risks are documented in [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md).
 
+## Author
+
+Created by [Cengiz Kemec](https://cengizkemec.com.tr/).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

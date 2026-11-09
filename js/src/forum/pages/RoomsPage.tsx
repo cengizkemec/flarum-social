@@ -73,7 +73,7 @@ export default class RoomsPage extends SocialPage {
         m('strong', {}, channel.name),
         m('small', {}, channel.description || ''),
         m('span', { className: 'SocialRoomCard-tags' }, [
-          channel.visibility !== 'public' ? m('span', { className: 'SocialTag SocialTag--small' }, app.translator.trans(`cengizkemec-social.forum.rooms.visibility_options.${channel.visibility}`)) : null,
+          channel.visibility !== 'public' ? m('span', { className: 'SocialTag SocialTag--small' }, app.translator.trans(`cengizkemec-social.forum.post.visibility.${channel.visibility}`)) : null,
         ]),
       ]),
       m('span', { className: 'SocialRoomCard-count' }, app.translator.trans('cengizkemec-social.forum.nav.text_channels')),

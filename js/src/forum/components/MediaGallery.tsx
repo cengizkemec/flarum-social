@@ -6,7 +6,7 @@ export default class MediaGallery {
 
     if (!media.length) return null;
 
-    const open = (item: any) => {
+    const open = (item: any, index: number) => {
       if (item.type === 'document') {
         window.open(item.url, '_blank', 'noopener');
         return;
@@ -22,7 +22,7 @@ export default class MediaGallery {
           'button',
           {
             className: 'SocialMediaGallery-item SocialMediaGallery-item--' + item.type,
-            onclick: () => open(item),
+            onclick: () => open(item, index),
             type: 'button',
             'aria-label': app.translator.trans('cengizkemec-social.forum.media.preview'),
           },

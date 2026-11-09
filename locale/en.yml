@@ -203,6 +203,7 @@ cengizkemec-social:
       uploaded: "Upload complete."
       attach: "Attach media"
       hint: "Up to {max} MB per file. Images, video and documents."
+      drop_hint: "Drop files here to upload."
       preview: "Preview media"
       previous: "Previous media"
       next: "Next media"
@@ -476,6 +477,7 @@ cengizkemec-social:
       loading: "Loading…"
   admin:
     homepage_label: "Social Page"
+    credit: "Developed by"
     errors:
       generic: "The request failed."
     common:
