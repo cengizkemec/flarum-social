@@ -2,6 +2,19 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.0 - 2026-11-10
+
+- Screen sharing now subscribes to remote screen-share publications explicitly and renders the active share for every member connected to the voice room, not only the sharer.
+- Added the sharer's name to the video, a local preview for the sharer, muted local preview to prevent echo, and click-to-fullscreen playback.
+- Verified screen sharing end-to-end with two native Flarum users on a real LiveKit development server: the viewer received and rendered the remote screen-share track.
+- Fixed ACP settings rendering for LiveKit, TURN, S3, Centrifugo and group-ID fields; URLs and keys are text fields and secrets are password fields, so they can be entered and saved from the admin panel.
+- Hid the duplicate **Join voice** button in the room sidebar while the current user is already connected.
+- Fixed the media lightbox fragment-key error and verified carousel navigation without console errors.
+- Native Flarum profile covers are resolved through the profile-cover filesystem disk and shown in the Social profile and hover card.
+- Added the author credit link to `https://cengizkemec.com.tr/` in the ACP.
+- Added release screenshots and expanded installation, configuration and security documentation.
+- English and Turkish locale parity is maintained at 780 keys.
+
 ## 1.0.1 - 2026-11-09
 
 - Authentication now always uses Flarum's native login and sign-up modals. The separate Social login/register pages were removed.

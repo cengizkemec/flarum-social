@@ -337,6 +337,7 @@ cengizkemec-social:
       screen_share: "Share screen"
       screen_error: "Screen sharing failed."
       screen_permission_denied: "Screen sharing was blocked by this browser. Open the forum in Chrome, Edge or Firefox and allow screen capture."
+      screen_fullscreen: "Click to view full screen"
       live: "Live"
       not_joined: "Voice not joined"
       waiting: "Waiting for others to join…"

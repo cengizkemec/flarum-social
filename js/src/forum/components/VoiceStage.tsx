@@ -54,10 +54,19 @@ export default class VoiceStage {
                 onremove: () => {
                   try { share.track.detach(); } catch (e) {}
                 },
+                onclick: (event: MouseEvent) => {
+                  const video = event.currentTarget as HTMLVideoElement;
+                  video.requestFullscreen?.().catch(() => {});
+                },
                 autoplay: true,
                 playsinline: true,
+                muted: true,
+                title: app.translator.trans('cengizkemec-social.forum.voice.screen_fullscreen'),
               }),
-              m('span', { className: 'SocialScreenShare-label' }, share.participant.name),
+              m('span', { className: 'SocialScreenShare-label' }, [
+                share.participant.name,
+                share.local ? ' · ' + app.translator.trans('cengizkemec-social.forum.voice.you') : '',
+              ]),
             ])
           ))
         : null,

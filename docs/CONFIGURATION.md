@@ -17,7 +17,24 @@ Temporary user-created rooms are pruned after the configured empty grace period.
 - **Default/maximum room capacity** sets the global bounds used by the room editor.
 - **Push to talk** and **PTT key** are global defaults. Each member can override the key, enable or disable push-to-talk, turn sound cues on/off, choose join-muted, and adjust noise suppression, echo cancellation and automatic gain in the Social voice settings dialog (sliders button).
 - **Voice sounds** controls Discord-style join/leave/mute/deafen cues. They are synthesized with the Web Audio API and need no audio assets.
-- **LiveKit URL / API key / API secret** must match the LiveKit server. An invalid key error means the secret does not match the server, not that localhost is unsupported.
+- **LiveKit URL / API key / API secret** must match the LiveKit server. These are rendered as normal text and password fields in the ACP, so credentials can be entered and saved without touching the database. An invalid key error means the secret does not match the server, not that localhost is unsupported.
+- **Enable screen sharing** and **Maximum simultaneous screen shares** control the global screen-share policy. Room editors also have a per-room screen-share switch. The `social.shareScreen` permission decides which groups may publish.
+- **Automatically reconnect voice** lets the client recover from a short network interruption without leaving the room.
+
+### Screen sharing
+
+A screen share is a LiveKit screen-share publication, not a screenshot. Every participant in the room subscribes to the remote video, so all members can watch the same active share. The sharer gets a local preview; other members see the sharer's name on the video. Click the video to open full screen. Screen-share audio is attached separately, so the muted local preview does not silence the shared audio for other listeners.
+
+To verify locally:
+
+1. Start a LiveKit server and enter its URL, key and secret in the ACP.
+2. Open the same voice room in two different browsers, signed in as two different Flarum users.
+3. Join voice in both.
+4. Click **Share screen** in one browser and allow capture.
+5. Confirm the local preview appears in the sharing browser and the sharer's video appears in the other browser.
+6. Click the video in the viewing browser and confirm full screen works.
+
+Browsers block screen capture on insecure origins. Use `https://` in production; `http://localhost` is accepted for local testing.
 
 ## Messages
 

@@ -337,6 +337,7 @@ cengizkemec-social:
       screen_share: "Ekran paylaş"
       screen_error: "Ekran paylaşımı başarısız."
       screen_permission_denied: "Bu tarayıcı ekran paylaşımını engelledi. Forumu Chrome, Edge veya Firefox'ta açıp ekran yakalamaya izin ver."
+      screen_fullscreen: "Tam ekran için tıkla"
       live: "Canlı"
       not_joined: "Sese katılmadın"
       waiting: "Diğerlerinin katılması bekleniyor…"

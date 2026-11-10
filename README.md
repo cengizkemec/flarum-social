@@ -36,6 +36,30 @@ It is a native Flarum extension. It uses Flarum users, sessions, permissions, tr
 - Seamless SPA navigation between Social, text channels and the rest of the Flarum forum. The voice panel stays mounted so an active LiveKit connection is not lost while browsing.
 - Native Flarum login and registration modals are used inside Social without a page reload.
 
+## Screenshots
+
+| Community feed | Rooms and categories |
+| --- | --- |
+| ![Community feed](docs/screenshots/feed.png) | ![Rooms and categories](docs/screenshots/rooms.png) |
+
+| Screen sharing in a voice room | Profile hover card |
+| --- | --- |
+| ![Screen sharing](docs/screenshots/screen-sharing.png) | ![Profile hover card](docs/screenshots/profile-hover.png) |
+
+| Native Flarum messages | Social profile with native cover |
+| --- | --- |
+| ![Messages](docs/screenshots/messages.png) | ![Social profile](docs/screenshots/profile.png) |
+
+| ACP overview | Voice settings |
+| --- | --- |
+| ![ACP overview](docs/screenshots/admin-overview.png) | ![Voice settings](docs/screenshots/admin-voice.png) |
+
+| Forum sidebar widgets | Mobile layout |
+| --- | --- |
+| ![Forum widgets](docs/screenshots/forum-widgets.png) | ![Mobile layout](docs/screenshots/mobile.png) |
+
+More screenshots are in [docs/screenshots](docs/screenshots). Release 1.1.0 notes are in [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
+
 ## Requirements
 
 - Flarum 2.0.x
@@ -73,6 +97,8 @@ Voice is optional. To enable it, enter a real LiveKit WebSocket URL and matching
 `invalid API key` is not caused by Flarum or by localhost itself. It means the JWT was signed with a key/secret that the configured LiveKit server does not know. Use the exact key and secret shown by the LiveKit server, or clear the LiveKit settings to show "voice is not configured" instead. A local LiveKit server works when the browser can reach its URL and the credentials match.
 
 Voice users can open the sliders button in the Social header to change their push-to-talk key, enable/disable voice sounds, choose whether to join muted, and tune noise suppression, echo cancellation and automatic gain control. These preferences are stored per user.
+
+Screen sharing uses LiveKit screen-share tracks. Every connected participant explicitly subscribes to remote screen-share publications, sees the sharer's video in the voice stage, and can click the video to open it full screen. The sharer also sees a local preview. Screen-share audio is attached separately, so muting the local preview does not mute the shared audio for other listeners. The feature can be disabled globally or per room, and `social.shareScreen` controls who may publish.
 
 ## Temporary room cleanup
 
@@ -118,6 +144,8 @@ Social does not maintain a second profile. It displays the Flarum display name, 
 - [Localization](docs/LOCALIZATION.md)
 - [Cleanup and retention](docs/CLEANUP.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Security audit](docs/SECURITY-AUDIT.md)
+- [Release notes 1.1.0](docs/RELEASE_NOTES.md)
 
 ## Tests
 

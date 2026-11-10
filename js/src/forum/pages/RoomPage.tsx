@@ -318,7 +318,7 @@ export default class RoomPage extends SocialPage {
         m('aside', { className: 'SocialRoomSidebar' }, [
           m('section', { className: 'SocialPanel' }, [
             m('div', { className: 'SocialSectionHead' }, [m('i', { className: 'fas fa-users' }), m('h2', {}, app.translator.trans('cengizkemec-social.forum.rooms.participants')), m('span', { className: 'SocialSectionHead-count' }, room.participants?.length || 0)]),
-            room.canJoin
+            room.canJoin && !voiceActive
               ? m('button', { className: 'Button Button--primary Button--block', onclick: () => this.joinVoice() }, [m('i', { className: 'fas fa-headset' }), ' ', app.translator.trans('cengizkemec-social.forum.voice.join')])
               : null,
             (room.participants || []).length

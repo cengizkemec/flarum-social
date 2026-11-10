@@ -1,5 +1,5 @@
 import app from 'flarum/forum/app';
-import { Room, RoomEvent, Track, ConnectionState } from 'livekit-client';
+import { Room, RoomEvent, Track } from 'livekit-client';
 import SocialState from './SocialState';
 import sounds from './sounds';
 import { post } from '../common/api';
@@ -122,6 +122,15 @@ class VoiceSession {
     room.on(RoomEvent.ConnectionQualityChanged, refresh);
     room.on(RoomEvent.LocalTrackPublished, refresh);
     room.on(RoomEvent.LocalTrackUnpublished, refresh);
+    room.on(RoomEvent.TrackPublished, (publication: any) => {
+      if (publication.source === Track.Source.ScreenShare) {
+        this.subscribeToScreenShare(publication);
+      }
+      refresh();
+    });
+    room.on(RoomEvent.TrackUnpublished, refresh);
+    room.on(RoomEvent.TrackMuted, refresh);
+    room.on(RoomEvent.TrackUnmuted, refresh);
     room.on(RoomEvent.TrackSubscribed, (track: any) => {
       if (track.kind === Track.Kind.Audio) {
         const element = track.attach();
@@ -178,10 +187,23 @@ class VoiceSession {
     this.screenSharing = Boolean(local?.isScreenShareEnabled);
 
     const shares: any[] = [];
+
+    local?.videoTrackPublications?.forEach((publication: any) => {
+      if (publication.source === Track.Source.ScreenShare && publication.track) {
+        shares.push({ participant: this.participantData(local, true), track: publication.track, local: true });
+      }
+    });
+
     this.room.remoteParticipants.forEach((participant: any) => {
       participant.videoTrackPublications?.forEach((publication: any) => {
-        if (publication.source === Track.Source.ScreenShare && publication.isSubscribed && publication.track) {
-          shares.push({ participant: this.participantData(participant, false), track: publication.track });
+        if (publication.source === Track.Source.ScreenShare) {
+          // Ask LiveKit explicitly; some room configurations disable
+          // auto-subscribe for video while audio remains subscribed.
+          this.subscribeToScreenShare(publication);
+
+          if (publication.track) {
+            shares.push({ participant: this.participantData(participant, false), track: publication.track, local: false });
+          }
         }
       });
     });
@@ -193,6 +215,20 @@ class VoiceSession {
     }
 
     m.redraw();
+  }
+
+  protected subscribeToScreenShare(publication: any): void {
+    if (!publication || publication.isSubscribed || !publication.setSubscribed) return;
+
+    try {
+      const result = publication.setSubscribed(true);
+
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => {});
+      }
+    } catch (e) {
+      // LiveKit may already have changed subscription state.
+    }
   }
 
   participantData(participant: any, local: boolean): any {
