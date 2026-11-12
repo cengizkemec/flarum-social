@@ -658,11 +658,18 @@ class VoiceSession {
 
       const prefs = this.preferences();
 
-      if (prefs.backgroundMic && !this.manualMuted && !this.microphone) {
-        this.micBeforeBackground = false;
-        this.backgroundMicForced = true;
-        this.enableMic();
-      } else if (!prefs.backgroundMic && wasPttActive && this.microphone) {
+      if (prefs.backgroundMic && !this.manualMuted) {
+        if (!this.microphone) {
+          this.micBeforeBackground = false;
+          this.backgroundMicForced = true;
+          this.enableMic();
+        } else if (wasPttActive) {
+          // The keyup was lost. Keep the microphone for background mode, but
+          // restore the muted push-to-talk state when the window returns.
+          this.micBeforeBackground = false;
+          this.backgroundMicForced = true;
+        }
+      } else if (wasPttActive && this.microphone) {
         this.disableMic();
       }
     } else {

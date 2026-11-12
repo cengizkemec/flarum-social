@@ -2,6 +2,10 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.7 - 2026-11-12
+
+- Fixed a background push-to-talk edge case: if the keyup event was lost because the browser moved to another window, returning to the tab now restores the muted push-to-talk state instead of leaving the microphone open. This complements the new **Keep microphone open in the background** setting from 1.1.6.
+
 ## 1.1.6 - 2026-11-12
 
 - Screen sharing now sends a realtime notification to every participant connected to the voice room: a toast names the sharer, a short sound cue plays, and **View** opens the room on the voice tab. Members can opt into desktop notifications for background alerts.
