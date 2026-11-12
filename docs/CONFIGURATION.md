@@ -64,6 +64,12 @@ Both are enabled by default and can be switched off independently.
 
 Text channels support multi-file attachment selection, drag-and-drop uploads over the channel area, and pasted clipboard images. Files are uploaded through the normal Social media pipeline and then posted as a message with attachments. The channel input and category assignment are managed from **ACP → Flarum Social → Rooms**.
 
+## Media storage and FoF Upload
+
+Social can store uploads in its own local/S3 filesystem or reuse the forum's `fof/upload` installation. Enable **ACP → Flarum Social → Media → Use FoF Upload for Social media** to send new Social uploads through FoF Upload's configured adapters. Files appear in the FoF Upload media library and share its storage, while Social keeps its own attachment records, visibility, per-type size limits and user quota.
+
+The integration is optional and disabled by default. If FoF Upload is disabled, missing, or the member lacks `fof-upload.upload`, Social falls back to its own storage automatically. Deleting a Social attachment does not delete the underlying FoF file because the same file may be referenced from a forum post; manage those files from the FoF Upload media library.
+
 ## Audit
 
 When `flarum/audit` is enabled, Social logs its own actions through the Audit extension. Actions include post/comment creation and deletion, media uploads and deletions, room creation/updates/deletion, room invite links, reports, profile updates, follows, stories, channel messages and friendship changes. Logging is optional: when Audit is disabled the helper is a no-op and Social continues normally.

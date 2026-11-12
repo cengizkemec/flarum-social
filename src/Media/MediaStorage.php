@@ -46,7 +46,8 @@ class MediaStorage
         protected SocialSettings $settings,
         protected TranslatorInterface $translator,
         protected Paths $paths,
-        protected Config $config
+        protected Config $config,
+        protected FofUploadBridge $fof
     ) {
     }
 
@@ -110,6 +111,12 @@ class MediaStorage
             throw new ValidationException([
                 'file' => $this->translator->trans('cengizkemec-social.api.errors.file_too_large', ['max' => $largestLimit]),
             ]);
+        }
+
+        $fofFile = $this->fof->upload($actor, $file);
+
+        if ($fofFile !== null) {
+            return $this->storeFof($actor, $fofFile, $file);
         }
 
         $temp = $this->copyToTemp($file);
@@ -202,8 +209,64 @@ class MediaStorage
         }
     }
 
+    /**
+     * Register a file that fof/upload has already stored. Social keeps the
+     * normal media record so attachments, permissions and cleanup continue to
+     * work, while the bytes live in the forum's FoF Upload storage.
+     */
+    protected function storeFof(User $actor, mixed $fofFile, UploadedFileInterface $file): Media
+    {
+        $url = (string) ($fofFile->url ?? '');
+        $path = (string) ($fofFile->path ?? '');
+
+        if ($url === '' && $path === '') {
+            throw new ValidationException([
+                'file' => $this->translator->trans('cengizkemec-social.api.errors.upload_failed'),
+            ]);
+        }
+
+        if ($url === '') {
+            $url = $path;
+        }
+
+        $mime = (string) ($fofFile->type ?? $file->getClientMediaType() ?: 'application/octet-stream');
+        $clientName = (string) ($file->getClientFilename() ?: $fofFile->base_name ?: 'upload');
+        $extension = self::MIME_EXTENSIONS[$mime] ?? strtolower(pathinfo($clientName, PATHINFO_EXTENSION));
+        $extension = preg_replace('/[^a-z0-9]+/i', '', $extension) ?: 'bin';
+        $extension = substr($extension, 0, 20);
+        $type = Str::startsWith($mime, 'image/') ? 'image' : (Str::startsWith($mime, 'video/') ? 'video' : 'document');
+        $originalName = preg_replace('/[\x00-\x1F\x7F"\\\\\/]+/', '', basename($clientName)) ?: 'upload.'.$extension;
+
+        $media = new Media();
+        $media->user_id = $actor->id;
+        $media->disk = 'fof';
+        $media->path = $url;
+        $media->thumbnail_path = $fofFile->thumbnail_url ? (string) $fofFile->thumbnail_url : null;
+        $media->original_name = Str::limit($originalName, 240, '');
+        $media->mime = $mime;
+        $media->extension = $extension;
+        $media->type = $type;
+        $media->size = (int) ($fofFile->size ?? $file->getSize() ?? 0);
+        $media->width = $fofFile->image_width ?? null;
+        $media->height = $fofFile->image_height ?? null;
+        $media->visibility = 'private';
+        $media->status = 'temporary';
+        $media->expires_at = \Illuminate\Support\now()->addHours(max(1, $this->settings->int('temporary_ttl_hours')));
+        $media->created_at = \Illuminate\Support\now();
+        $media->updated_at = \Illuminate\Support\now();
+        $media->save();
+
+        return $media;
+    }
+
     public function deleteFiles(Media $media): void
     {
+        if ($media->disk === 'fof') {
+            // The file is owned by fof/upload and may still be referenced from
+            // a forum post, so Social does not delete it automatically.
+            return;
+        }
+
         $files = array_filter([$media->path, $media->thumbnail_path]);
 
         foreach ($files as $path) {
@@ -222,6 +285,10 @@ class MediaStorage
      */
     public function read(Media $media, bool $thumbnail = false): array
     {
+        if ($media->disk === 'fof') {
+            return $this->readFof($media, $thumbnail);
+        }
+
         $path = $thumbnail && $media->thumbnail_path ? $media->thumbnail_path : $media->path;
 
         if (! $this->filesystem()->fileExists($path)) {
@@ -245,8 +312,64 @@ class MediaStorage
         ];
     }
 
+    /**
+     * @return array{stream: resource, mime: string, size: int, name: string}
+     */
+    protected function readFof(Media $media, bool $thumbnail): array
+    {
+        $target = $thumbnail && $media->thumbnail_path ? $media->thumbnail_path : $media->path;
+
+        if ($target === '') {
+            throw new \RuntimeException('Media file not found');
+        }
+
+        if (str_starts_with($target, '/')) {
+            $target = rtrim((string) $this->config->url(), '/').$target;
+        }
+
+        try {
+            $contents = @file_get_contents($target);
+        } catch (\Throwable $e) {
+            $contents = false;
+        }
+
+        if ($contents === false) {
+            try {
+                $client = new \GuzzleHttp\Client(['timeout' => 20]);
+                $response = $client->get($target);
+                $contents = (string) $response->getBody();
+            } catch (\Throwable $e) {
+                throw new \RuntimeException('Media file not readable');
+            }
+        }
+
+        $stream = fopen('php://temp', 'r+b');
+
+        if (! is_resource($stream)) {
+            throw new \RuntimeException('Media file not readable');
+        }
+
+        fwrite($stream, $contents);
+        rewind($stream);
+
+        return [
+            'stream' => $stream,
+            'mime' => $thumbnail ? 'image/jpeg' : $media->mime,
+            'size' => strlen($contents),
+            'name' => $thumbnail ? 'thumbnail.jpg' : ($media->original_name ?: 'download'),
+        ];
+    }
+
     public function url(Media $media, bool $thumbnail = false): string
     {
+        if ($media->disk === 'fof') {
+            if ($thumbnail && $media->thumbnail_path) {
+                return $media->thumbnail_path;
+            }
+
+            return $media->path;
+        }
+
         $base = rtrim((string) $this->config->url(), '/');
 
         return $base.'/api/social/media/'.$media->id.'/file'.($thumbnail && $media->thumbnail_path ? '?thumb=1' : '');

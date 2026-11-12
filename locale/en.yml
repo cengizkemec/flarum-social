@@ -685,6 +685,8 @@ cengizkemec-social:
       allow_delete: "Allow members to delete posts"
       stories_ttl_hours: "Story lifetime in hours"
       uploads: "Allow media uploads"
+      use_fof_upload: "Use FoF Upload for Social media"
+      use_fof_upload_help: "When fof/upload is installed and enabled, new Social uploads use its storage adapters and appear in its media library. Social keeps its own permissions and attachment records. Social’s per-type size and quota limits still apply."
       max_image_mb: "Maximum image size (MB)"
       max_video_mb: "Maximum video size (MB)"
       max_document_mb: "Maximum document size (MB)"

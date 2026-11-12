@@ -2,6 +2,12 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.8 - 2026-11-12
+
+- Added optional **Use FoF Upload for Social media** support. When `fof/upload` is installed and enabled, new Social uploads use its storage adapters, limits and media library instead of Social's own media filesystem. Social still owns the attachment records, permissions and per-type size/quota checks, so private posts are not bypassed.
+- The setting is opt-in under **ACP → Flarum Social → Media**. If FoF Upload is unavailable or the member cannot upload through it, Social automatically falls back to its own storage.
+- No database changes are required.
+
 ## 1.1.7 - 2026-11-12
 
 - Fixed a background push-to-talk edge case: if the keyup event was lost because the browser moved to another window, returning to the tab now restores the muted push-to-talk state instead of leaving the microphone open. This complements the new **Keep microphone open in the background** setting from 1.1.6.

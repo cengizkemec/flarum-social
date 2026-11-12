@@ -685,6 +685,8 @@ cengizkemec-social:
       allow_delete: "Üyelerin gönderilerini silmesine izin ver"
       stories_ttl_hours: "Hikâye ömrü (saat)"
       uploads: "Medya yüklemeye izin ver"
+      use_fof_upload: "Sosyal medya için FoF Upload kullan"
+      use_fof_upload_help: "fof/upload kurulu ve etkinse yeni Sosyal yüklemeleri onun depolama adaptörlerini kullanır ve medya kütüphanesinde görünür. Sosyal kendi izinlerini ve ek kayıtlarını korur. Sosyal’in tür bazlı boyut ve kota sınırları yine geçerlidir."
       max_image_mb: "Maksimum görsel boyutu (MB)"
       max_video_mb: "Maksimum video boyutu (MB)"
       max_document_mb: "Maksimum belge boyutu (MB)"

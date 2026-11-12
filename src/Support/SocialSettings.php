@@ -63,6 +63,7 @@ class SocialSettings
         'stories_ttl_hours' => 24,
 
         'uploads' => true,
+        'use_fof_upload' => false,
         'max_image_mb' => 10,
         'max_video_mb' => 100,
         'max_document_mb' => 20,

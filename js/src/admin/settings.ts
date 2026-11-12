@@ -63,6 +63,7 @@ export const SETTING_GROUPS: Record<string, SettingItem[]> = {
   ],
   media: [
     { key: 'uploads' },
+    { key: 'use_fof_upload', help: true },
     { key: 'max_image_mb', type: 'number', min: 1, max: 500 },
     { key: 'max_video_mb', type: 'number', min: 1, max: 4096 },
     { key: 'max_document_mb', type: 'number', min: 1, max: 1024 },
