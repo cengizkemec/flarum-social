@@ -2,6 +2,14 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.2 - 2026-11-12
+
+- Replaced the Social header's Font Awesome brand icon with the forum's own light or dark-mode logo from Flarum's Appearance settings.
+- Fixed the FoF News / announcement area becoming two side-by-side blocks: all announcements now share one grid cell and one stable block height.
+- Made the announcement card behave like the forum's news fader: lines rotate in place, the page height does not jump, and shorter announcements keep the same reserved space.
+- Kept the forum announcement HTML, links and styling intact while displaying the block at full Social width.
+- Verified the changes on the live `warthunder.tr` installation with the dark theme logo and the rotating announcements.
+
 ## 1.1.1 - 2026-11-12
 
 - Made the Social header match the War Thunder theme: compact single-row navigation, uppercase condensed links, theme text colours and a red top rule in both dark and light modes.

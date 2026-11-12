@@ -90,6 +90,9 @@ export default class SocialHeader {
     const locales = app.data.locales || {};
     const showLanguageSelector = app.forum.attribute<boolean>('showLanguageSelector') !== false && Object.keys(locales).length > 1;
     const communityLinks = this.headerLinks();
+    const logoUrl = app.forum.attribute<string>('logoUrl');
+    const logoDarkUrl = app.forum.attribute<string>('logoDarkModeUrl');
+    const logoAlt = app.forum.attribute<string>('title') || (app.translator.trans('cengizkemec-social.forum.nav.social') as string);
 
     return m('header', { className: 'SocialHeader' }, [
       m('div', { className: 'SocialHeader-left' }, [
@@ -103,7 +106,16 @@ export default class SocialHeader {
           m('i', { className: 'fas fa-bars' })
         ),
         m('a', { className: 'SocialBrand', href: app.route('social.index') }, [
-          m('span', { className: 'SocialBrand-icon' }, m('i', { className: 'fas fa-comments' })),
+          m(
+            'span',
+            { className: 'SocialBrand-icon' + (logoUrl ? ' SocialBrand-icon--logo' : '') },
+            logoUrl
+              ? [
+                  m('img', { className: 'SocialBrand-logo', src: logoUrl, alt: logoAlt }),
+                  logoDarkUrl ? m('img', { className: 'SocialBrand-logo SocialBrand-logo--dark-mode', src: logoDarkUrl, alt: logoAlt }) : null,
+                ]
+              : m('i', { className: 'fas fa-comments' })
+          ),
           m('span', { className: 'SocialBrand-text' }, m('strong', {}, app.translator.trans('cengizkemec-social.forum.nav.social'))),
         ]),
         m('nav', { className: 'SocialHeader-nav' }, [
