@@ -16,10 +16,18 @@ export default class SocialAdminPage extends ExtensionPage {
   actionLoading = false;
   cleanupResult: any = null;
   error: string | null = null;
+  afkRooms: any[] = [];
 
   oninit(vnode: any): void {
     super.oninit(vnode);
     this.loadDashboard();
+
+    adminGet('/social/admin/rooms')
+      .then((response: any) => {
+        this.afkRooms = response.data?.rooms || [];
+        m.redraw();
+      })
+      .catch(() => {});
   }
 
   loadDashboard(): void {
@@ -103,6 +111,26 @@ export default class SocialAdminPage extends ExtensionPage {
     });
   }
 
+  afkRoomSetting(): any {
+    const options: Record<string, string> = {
+      '0': app.translator.trans('cengizkemec-social.admin.settings.afk_room_none') as string,
+    };
+
+    this.afkRooms
+      .filter((room: any) => room.isVoice)
+      .forEach((room: any) => {
+        options[String(room.id)] = room.name + (room.slug ? ` (${room.slug})` : '');
+      });
+
+    return this.buildSettingComponent({
+      setting: 'cengizkemec-social.afk_room_id',
+      label: app.translator.trans('cengizkemec-social.admin.settings.afk_room_id'),
+      help: app.translator.trans('cengizkemec-social.admin.settings.afk_room_id_help'),
+      type: 'select',
+      options,
+    });
+  }
+
   settingsTab(group: string): any {
     const items = SETTING_GROUPS[group] || [];
 
@@ -121,6 +149,7 @@ export default class SocialAdminPage extends ExtensionPage {
         ? m('div', { className: 'SocialAdminNote' }, [m('i', { className: 'fas fa-circle-info' }), ' ', app.translator.trans('cengizkemec-social.admin.notes.realtime')])
         : null,
       ...items.map((item) => this.settingComponent(item)),
+      group === 'voice' ? this.afkRoomSetting() : null,
       m('div', { className: 'Form-group Form-controls' }, [this.submitButton(), this.resetButton()]),
     ]);
   }

@@ -23,7 +23,13 @@ class LiveKit
 
     public function roomName(Room $room): string
     {
-        return 'social-room-'.$room->id;
+        // The LiveKit dashboard lists this value directly, so show the same
+        // human-readable room name members see in Social. The numeric suffix
+        // keeps rooms unique even when two rooms share a name.
+        $name = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string) $room->name) ?: 'Room');
+        $name = function_exists('mb_substr') ? mb_substr($name, 0, 120) : substr($name, 0, 120);
+
+        return $name.' (#'.$room->id.')';
     }
 
     public function identity(User $user): string

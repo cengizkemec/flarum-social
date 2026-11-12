@@ -42,12 +42,20 @@ class LiveKitWebhookController extends AbstractSocialController
         $eventType = $event['event'] ?? '';
         $roomName = $event['room']['name'] ?? '';
         $identity = $event['participant']['identity'] ?? '';
+        $roomId = null;
 
-        if (! preg_match('/^social-room-(\d+)$/', $roomName, $matches)) {
+        if (preg_match('/\(#(\d+)\)$/u', $roomName, $matches)) {
+            $roomId = (int) $matches[1];
+        } elseif (preg_match('/^social-room-(\d+)(?:-|$)/', $roomName, $matches)) {
+            // Rooms created by earlier releases used the old identifier.
+            $roomId = (int) $matches[1];
+        }
+
+        if ($roomId === null) {
             return new EmptyResponse(200);
         }
 
-        $room = Room::query()->find((int) $matches[1]);
+        $room = Room::query()->find($roomId);
 
         if (! $room) {
             return new EmptyResponse(200);

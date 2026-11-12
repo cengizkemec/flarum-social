@@ -16,6 +16,7 @@ export default class AdminRoomManager {
   channelRoom = '';
   channelCategory = '';
   channelVisibility = 'members';
+  reordering = false;
 
   oninit(): void {
     this.load();
@@ -120,6 +121,57 @@ export default class AdminRoomManager {
     adminDelete(`/social/admin/channels/${channel.id}`).then(() => this.load()).catch((error: any) => app.alerts.show({ type: 'error' }, error.message));
   }
 
+  moveItem(items: any[], id: any, delta: number): any[] | null {
+    const list = [...items];
+    const index = list.findIndex((item) => Number(item.id) === Number(id));
+    const target = index + delta;
+
+    if (index < 0 || target < 0 || target >= list.length) return null;
+
+    const [item] = list.splice(index, 1);
+    list.splice(target, 0, item);
+
+    return list;
+  }
+
+  moveRoom(room: any, delta: number): void {
+    if (this.reordering) return;
+
+    const rooms = this.moveItem(this.data?.rooms || [], room.id, delta);
+    if (!rooms) return;
+
+    this.data.rooms = rooms;
+    this.reordering = true;
+    m.redraw();
+
+    adminPost('/social/admin/rooms/reorder', { ids: rooms.map((item: any) => Number(item.id)) })
+      .then(() => this.load())
+      .catch((error: any) => app.alerts.show({ type: 'error' }, error.message))
+      .finally(() => {
+        this.reordering = false;
+        m.redraw();
+      });
+  }
+
+  moveCategory(category: any, delta: number): void {
+    if (this.reordering) return;
+
+    const categories = this.moveItem(this.data?.categories || [], category.id, delta);
+    if (!categories) return;
+
+    this.data.categories = categories;
+    this.reordering = true;
+    m.redraw();
+
+    adminPost('/social/admin/categories/reorder', { ids: categories.map((item: any) => Number(item.id)) })
+      .then(() => this.load())
+      .catch((error: any) => app.alerts.show({ type: 'error' }, error.message))
+      .finally(() => {
+        this.reordering = false;
+        m.redraw();
+      });
+  }
+
   view(): any {
     if (this.loading) return m('div', { className: 'SocialAdminLoading' }, m('i', { className: 'fas fa-spinner fa-spin' }));
 
@@ -147,7 +199,7 @@ export default class AdminRoomManager {
           m('input', { className: 'FormControl', value: this.categoryIcon, oninput: (event: Event) => (this.categoryIcon = (event.target as HTMLInputElement).value) }),
           m(Button, { className: 'Button', onclick: () => this.addCategory() }, app.translator.trans('cengizkemec-social.admin.rooms.add_category')),
         ]),
-        m('div', { className: 'SocialAdminList' }, categories.map((category: any) =>
+        m('div', { className: 'SocialAdminList' }, categories.map((category: any, index: number) =>
           this.editingCategoryId === Number(category.id)
             ? m('div', { className: 'SocialAdminList-row SocialAdminList-row--editing' }, [
                 m('span', { className: 'SocialAdminList-main' }, [
@@ -173,6 +225,18 @@ export default class AdminRoomManager {
             : m('div', { className: 'SocialAdminList-row' }, [
                 m('span', { className: 'SocialAdminList-main' }, [m('i', { className: category.icon || 'fas fa-folder' }), m('strong', {}, category.name), m('small', {}, rooms.filter((room: any) => room.categoryId === category.id).length + ' ' + app.translator.trans('cengizkemec-social.admin.rooms.rooms'))]),
                 m('div', { className: 'SocialAdminList-actions' }, [
+                  m(Button, {
+                    className: 'Button Button--link Button--small SocialAdminMove',
+                    title: app.translator.trans('cengizkemec-social.admin.rooms.move_up'),
+                    disabled: this.reordering || index === 0,
+                    onclick: () => this.moveCategory(category, -1),
+                  }, m('i', { className: 'fas fa-arrow-up' })),
+                  m(Button, {
+                    className: 'Button Button--link Button--small SocialAdminMove',
+                    title: app.translator.trans('cengizkemec-social.admin.rooms.move_down'),
+                    disabled: this.reordering || index === categories.length - 1,
+                    onclick: () => this.moveCategory(category, 1),
+                  }, m('i', { className: 'fas fa-arrow-down' })),
                   m(Button, { className: 'Button Button--link Button--small', onclick: () => this.startEditCategory(category) }, app.translator.trans('cengizkemec-social.admin.common.edit')),
                   m(Button, { className: 'Button Button--link Button--small', onclick: () => this.removeCategory(category) }, app.translator.trans('cengizkemec-social.admin.common.delete')),
                 ]),
@@ -196,7 +260,7 @@ export default class AdminRoomManager {
             m('th', {}, app.translator.trans('cengizkemec-social.admin.rooms.type')),
             m('th', {}, ''),
           ])),
-          m('tbody', {}, rooms.map((room: any) =>
+          m('tbody', {}, rooms.map((room: any, index: number) =>
             m('tr', {}, [
               m('td', {}, [
                 m('i', { className: room.icon || 'fas fa-headset' }),
@@ -211,6 +275,18 @@ export default class AdminRoomManager {
               m('td', {}, room.participantCount),
               m('td', {}, app.translator.trans(`cengizkemec-social.admin.rooms.types.${room.type}`)),
               m('td', { className: 'SocialAdminTable-actions' }, [
+                m(Button, {
+                  className: 'Button Button--link Button--small SocialAdminMove',
+                  title: app.translator.trans('cengizkemec-social.admin.rooms.move_up'),
+                  disabled: this.reordering || index === 0,
+                  onclick: () => this.moveRoom(room, -1),
+                }, m('i', { className: 'fas fa-arrow-up' })),
+                m(Button, {
+                  className: 'Button Button--link Button--small SocialAdminMove',
+                  title: app.translator.trans('cengizkemec-social.admin.rooms.move_down'),
+                  disabled: this.reordering || index === rooms.length - 1,
+                  onclick: () => this.moveRoom(room, 1),
+                }, m('i', { className: 'fas fa-arrow-down' })),
                 m(Button, { className: 'Button Button--link Button--small', onclick: () => this.openRoom(room) }, app.translator.trans('cengizkemec-social.admin.common.edit')),
                 m(Button, { className: 'Button Button--link Button--small', onclick: () => this.removeRoom(room) }, app.translator.trans('cengizkemec-social.admin.common.delete')),
               ]),

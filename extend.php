@@ -171,9 +171,11 @@ return [
 
         ->get('/social/admin/rooms', 'social.admin.rooms.index', Controller\AdminRoomController::class)
         ->post('/social/admin/rooms', 'social.admin.rooms.create', Controller\AdminRoomController::class)
+        ->post('/social/admin/rooms/reorder', 'social.admin.rooms.reorder', Controller\AdminRoomController::class)
         ->patch('/social/admin/rooms/{id}', 'social.admin.rooms.update', Controller\AdminRoomController::class)
         ->delete('/social/admin/rooms/{id}', 'social.admin.rooms.delete', Controller\AdminRoomController::class)
         ->post('/social/admin/categories', 'social.admin.categories.create', Controller\AdminRoomController::class)
+        ->post('/social/admin/categories/reorder', 'social.admin.categories.reorder', Controller\AdminRoomController::class)
         ->patch('/social/admin/categories/{id}', 'social.admin.categories.update', Controller\AdminRoomController::class)
         ->delete('/social/admin/categories/{id}', 'social.admin.categories.delete', Controller\AdminRoomController::class)
         ->post('/social/admin/channels', 'social.admin.channels.create', Controller\AdminRoomController::class)

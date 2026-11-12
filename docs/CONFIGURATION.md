@@ -9,8 +9,11 @@ All settings live in **Administration → Flarum Social**. Settings are stored u
 - **Capacity** must be between 2 and the global `max_room_capacity`. The editor shows the allowed range, blocks saving invalid values, and the server clamps the value again.
 - **Voice/text/screen sharing** flags control what the room exposes.
 - **Allowed group IDs** restrict access to Flarum groups. Empty means all groups.
+- **Move up / Move down** arrows reorder rooms and categories in the ACP list without editing sort values by hand. The order is saved through `POST /api/social/admin/rooms/reorder` and `POST /api/social/admin/categories/reorder`.
 
 Temporary user-created rooms are pruned after the configured empty grace period. Permanent rooms created in the ACP are never auto-deleted and keep showing live participant counts.
+
+LiveKit room identifiers now use the member-facing room name plus a stable numeric suffix, for example `Genel Sohbet 1 (#1)`. This makes the LiveKit dashboard readable while keeping rooms unique; old `social-room-<id>` webhook names remain supported.
 
 ## Voice
 
@@ -20,10 +23,14 @@ Temporary user-created rooms are pruned after the configured empty grace period.
 - **LiveKit URL / API key / API secret** must match the LiveKit server. These are rendered as normal text and password fields in the ACP, so credentials can be entered and saved without touching the database. An invalid key error means the secret does not match the server, not that localhost is unsupported.
 - **Enable screen sharing** and **Maximum simultaneous screen shares** control the global screen-share policy. Room editors also have a per-room screen-share switch. The `social.shareScreen` permission decides which groups may publish.
 - **Automatically reconnect voice** lets the client recover from a short network interruption without leaving the room.
+- **AFK room** and **AFK timeout** control automatic inactivity handling. Choose a voice room in **ACP → Flarum Social → Voice** and set a timeout in minutes. Members with no keyboard, mouse or speaking activity for that period are moved to the AFK room with microphone muted and sound deafened; the notification includes a **Return to previous room** action. Leave the AFK room set to **Disabled** to turn the feature off.
+- **Keep microphone open in the background** is a per-member voice setting. Browsers cannot capture push-to-talk keys while another application has focus, so this option keeps the microphone enabled when the tab loses focus. Without it, any active push-to-talk state is released when the tab is hidden.
 
 ### Screen sharing
 
 A screen share is a LiveKit screen-share publication, not a screenshot. Every participant in the room subscribes to the remote video, so all members can watch the same active share. The sharer gets a local preview; other members see the sharer's name on the video. Click the video to open full screen. Screen-share audio is attached separately, so the muted local preview does not silence the shared audio for other listeners.
+
+When a member starts sharing, the other LiveKit participants receive a realtime data message: a toast names the sharer, a short sound cue plays, and **Watch** opens the room on the voice tab. Members can also enable **Desktop notifications** in voice settings to receive the same alert as a system notification while the browser is in the background. The connection-info panel shows a Discord-style ping graph with the last five minutes of latency and min/average/max values.
 
 To verify locally:
 

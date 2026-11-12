@@ -91,6 +91,13 @@ class VoiceSounds {
   undeafen(): void {
     this.play([{ frequency: 392, duration: 0.08 }, { frequency: 587.33, duration: 0.1, delay: 0.07 }]);
   }
+
+  screenShare(): void {
+    this.play([
+      { frequency: 587.33, duration: 0.09, type: 'triangle' },
+      { frequency: 880, duration: 0.13, delay: 0.08, type: 'triangle' },
+    ]);
+  }
 }
 
 export default new VoiceSounds();

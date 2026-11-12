@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import SocialState from './SocialState';
 import sounds from './sounds';
-import { post } from '../common/api';
+import { get, post } from '../common/api';
 
 class VoiceSession {
   room: Room | null = null;
@@ -18,6 +18,7 @@ class VoiceSession {
   screenShares: any[] = [];
   connectionState = 'disconnected';
   latencyMs: number | null = null;
+  latencyHistory: { at: number; ms: number }[] = [];
   connectionQuality: string = 'unknown';
   connectedAt: number | null = null;
   statsInterval: number | null = null;
@@ -25,6 +26,23 @@ class VoiceSession {
   audioElements = new Map<string, HTMLAudioElement>();
   keyHandler: ((event: KeyboardEvent) => void) | null = null;
   keyUpHandler: ((event: KeyboardEvent) => void) | null = null;
+  announcedScreenShares = new Set<string>();
+  manualMuted = false;
+  backgrounded = false;
+  backgroundMicForced = false;
+  micBeforeBackground = false;
+  backgroundListenersInstalled = false;
+  afkInterval: number | null = null;
+  afkLastActivity = Date.now();
+  afkMoving = false;
+  afkAlertId: number | null = null;
+  previousRoomInfo: any = null;
+  deafenedBeforeAfk = false;
+  afkListenersInstalled = false;
+  private onVisibilityChange = () => this.handleBackgroundChange();
+  private onWindowBlur = () => this.handleBackgroundChange();
+  private onWindowFocus = () => this.handleBackgroundChange();
+  private onAfkActivity = () => this.markActivity();
 
   async connect(roomInfo: any, password = ''): Promise<void> {
     if (this.connecting) return;
@@ -80,6 +98,9 @@ class VoiceSession {
       this.connecting = false;
       this.connectionState = 'connected';
       this.connectedAt = Date.now();
+      this.manualMuted = false;
+      this.latencyHistory = [];
+      this.announcedScreenShares.clear();
 
       try {
         await room.startAudio();
@@ -95,6 +116,8 @@ class VoiceSession {
       this.refreshStats();
 
       this.installPtt();
+      this.installBackgroundListeners();
+      this.installAfkMonitor();
       sounds.join();
       this.refresh();
     } catch (error: any) {
@@ -118,15 +141,43 @@ class VoiceSession {
       sounds.leave();
       refresh();
     });
-    room.on(RoomEvent.ActiveSpeakersChanged, refresh);
+    room.on(RoomEvent.ActiveSpeakersChanged, () => {
+      if (room.localParticipant?.isSpeaking) this.markActivity();
+      refresh();
+    });
     room.on(RoomEvent.ConnectionQualityChanged, refresh);
-    room.on(RoomEvent.LocalTrackPublished, refresh);
-    room.on(RoomEvent.LocalTrackUnpublished, refresh);
+    room.on(RoomEvent.LocalTrackPublished, (publication: any) => {
+      if (publication?.source === Track.Source.ScreenShare) {
+        this.announceScreenShare('start', publication);
+      }
+
+      refresh();
+    });
+    room.on(RoomEvent.LocalTrackUnpublished, (publication: any) => {
+      if (publication?.source === Track.Source.ScreenShare) {
+        this.announceScreenShare('stop', publication);
+      }
+
+      refresh();
+    });
     room.on(RoomEvent.TrackPublished, (publication: any) => {
       if (publication.source === Track.Source.ScreenShare) {
         this.subscribeToScreenShare(publication);
       }
       refresh();
+    });
+    room.on(RoomEvent.DataReceived, (payload: any, participant: any, _kind?: any, topic?: string) => {
+      if (topic !== 'social.screenshare' || !participant) return;
+
+      try {
+        const message = JSON.parse(new TextDecoder().decode(payload));
+
+        if (message?.type === 'start') {
+          this.handleRemoteScreenShare(participant, message);
+        }
+      } catch (e) {
+        // Ignore malformed data packets from other clients.
+      }
     });
     room.on(RoomEvent.TrackUnpublished, refresh);
     room.on(RoomEvent.TrackMuted, refresh);
@@ -164,6 +215,7 @@ class VoiceSession {
     });
     room.on(RoomEvent.Reconnected, () => {
       this.connectionState = 'connected';
+      this.latencyHistory = [];
       this.refresh();
     });
   }
@@ -231,6 +283,107 @@ class VoiceSession {
     }
   }
 
+  localDisplayName(): string {
+    if (!this.room) return '';
+
+    return this.participantData(this.room.localParticipant, true).name;
+  }
+
+  protected announceScreenShare(type: 'start' | 'stop', publication: any): void {
+    if (!this.room || !this.connected) return;
+
+    const sid = String(publication?.trackSid || publication?.track?.sid || 'screen-share');
+
+    if (type === 'start') {
+      if (this.announcedScreenShares.has(sid)) return;
+      this.announcedScreenShares.add(sid);
+    } else {
+      this.announcedScreenShares.delete(sid);
+    }
+
+    try {
+      const payload = new TextEncoder().encode(JSON.stringify({
+        type,
+        name: this.localDisplayName(),
+        roomId: this.roomInfo?.id,
+        at: Date.now(),
+      }));
+
+      this.room.localParticipant
+        .publishData(payload, { reliable: true, topic: 'social.screenshare' })
+        .catch(() => {});
+    } catch (e) {
+      // Notifications are best-effort; the video track itself already works.
+    }
+  }
+
+  protected handleRemoteScreenShare(participant: any, message: any): void {
+    const name = message?.name
+      || this.participantData(participant, false).name
+      || participant?.name
+      || participant?.identity
+      || '';
+
+    const title = app.translator.trans('cengizkemec-social.forum.voice.screen_share_started_title') as string;
+    const body = app.translator.trans('cengizkemec-social.forum.voice.screen_share_started', { name }) as string;
+
+    sounds.screenShare();
+    this.notifyDesktop(title, body);
+
+    let alertId: number | null = null;
+    const roomLink = this.roomInfo
+      ? app.route('social.room', { slug: this.roomInfo.slug || this.roomInfo.id }) + '?voice=1'
+      : null;
+
+    alertId = app.alerts.show(
+      {
+        type: 'success',
+        icon: 'fas fa-display',
+        title,
+        controls: roomLink
+          ? [m('a', {
+              className: 'Button Button--link SocialVoicePanel-watch',
+              href: roomLink,
+              onclick: () => {
+                if (alertId !== null) app.alerts.dismiss(alertId);
+              },
+            }, app.translator.trans('cengizkemec-social.forum.voice.watch'))]
+          : [],
+      },
+      body
+    );
+
+    if (this.roomInfo?.id) {
+      window.dispatchEvent(new CustomEvent('social:screenshare-started', { detail: { roomId: this.roomInfo.id } }));
+    }
+  }
+
+  protected notifyDesktop(title: string, body: string): void {
+    if (!this.preferences().desktopNotifications) return;
+
+    try {
+      if (!('Notification' in window) || !window.isSecureContext) return;
+      if (Notification.permission !== 'granted') return;
+
+      const notification = new Notification(title, {
+        body,
+        tag: `social-voice-screenshare-${this.roomInfo?.id || 'room'}`,
+      });
+
+      notification.onclick = () => {
+        window.focus();
+
+        if (this.roomInfo) {
+          m.route.set(app.route('social.room', { slug: this.roomInfo.slug || this.roomInfo.id }) + '?voice=1');
+        }
+
+        notification.close();
+      };
+    } catch (e) {
+      // Some browsers disallow constructed notifications from a page context.
+    }
+  }
+
   participantData(participant: any, local: boolean): any {
     let metadata: any = {};
 
@@ -258,23 +411,33 @@ class VoiceSession {
     if (!this.room) return;
 
     const engine: any = (this.room as any).engine;
-    const transport = engine?.pcManager?.publisher || engine?.pcManager?.subscriber;
+    const transports = [engine?.pcManager?.publisher, engine?.pcManager?.subscriber].filter(Boolean);
 
     try {
-      const report = await transport?.getStats?.();
+      let rtt: number | null = null;
+      let fallbackRtt: number | null = null;
 
-      if (report) {
-        let rtt: number | null = null;
+      for (const transport of transports) {
+        const report = await transport?.getStats?.();
+        if (!report) continue;
 
         report.forEach((stat: any) => {
           if (stat.type === 'candidate-pair' && stat.state === 'succeeded' && typeof stat.currentRoundTripTime === 'number') {
-            rtt = stat.currentRoundTripTime;
-          } else if (stat.type === 'remote-inbound-rtp' && typeof stat.roundTripTime === 'number') {
-            rtt = stat.roundTripTime;
+            const ms = stat.currentRoundTripTime * 1000;
+
+            if (stat.nominated || stat.selected) rtt = ms;
+            else if (fallbackRtt === null) fallbackRtt = ms;
+          } else if (stat.type === 'remote-inbound-rtp' && typeof stat.roundTripTime === 'number' && fallbackRtt === null) {
+            fallbackRtt = stat.roundTripTime * 1000;
           }
         });
+      }
 
-        if (rtt !== null) this.latencyMs = Math.round(rtt * 1000);
+      const measured = rtt ?? fallbackRtt;
+
+      if (measured !== null && Number.isFinite(measured) && measured >= 0) {
+        this.latencyMs = Math.round(measured);
+        this.recordLatency(this.latencyMs);
       }
 
       this.connectionQuality = String((this.room.localParticipant as any)?.connectionQuality || this.connectionQuality || 'unknown');
@@ -282,6 +445,14 @@ class VoiceSession {
     } catch (e) {
       // Stats are informational; never interrupt the call for them.
     }
+  }
+
+  protected recordLatency(ms: number): void {
+    const now = Date.now();
+    const cutoff = now - 5 * 60 * 1000;
+
+    this.latencyHistory.push({ at: now, ms });
+    this.latencyHistory = this.latencyHistory.filter((point) => point.at >= cutoff);
   }
 
   connectedDuration(): string {
@@ -319,6 +490,8 @@ class VoiceSession {
       noiseSuppression: personal.noiseSuppression ?? config.noiseSuppression !== false,
       echoCancellation: personal.echoCancellation ?? config.echoCancellation !== false,
       autoGainControl: personal.autoGainControl ?? config.autoGainControl !== false,
+      backgroundMic: personal.backgroundMic ?? false,
+      desktopNotifications: personal.desktopNotifications ?? false,
     };
   }
 
@@ -352,6 +525,7 @@ class VoiceSession {
   }
 
   toggleDeafen(): void {
+    this.markActivity();
     this.deafened = !this.deafened;
 
     this.participants.forEach((participant) => {
@@ -366,8 +540,11 @@ class VoiceSession {
 
   async toggleMic(): Promise<void> {
     if (!this.room) return;
+    this.markActivity();
     const next = !this.microphone;
     await this.room.localParticipant.setMicrophoneEnabled(next);
+    this.manualMuted = !next;
+    this.backgroundMicForced = false;
 
     if (next) sounds.unmute();
     else sounds.mute();
@@ -377,6 +554,7 @@ class VoiceSession {
 
   async enableMic(): Promise<void> {
     if (!this.room || this.microphone) return;
+    this.markActivity();
     await this.room.localParticipant.setMicrophoneEnabled(true);
     this.refresh();
   }
@@ -391,6 +569,7 @@ class VoiceSession {
     if (!this.room) return;
 
     try {
+      this.markActivity();
       await this.room.localParticipant.setScreenShareEnabled(!this.screenSharing);
       this.refresh();
     } catch (error: any) {
@@ -443,6 +622,231 @@ class VoiceSession {
     this.keyUpHandler = null;
   }
 
+  installBackgroundListeners(): void {
+    if (this.backgroundListenersInstalled) return;
+    this.backgroundListenersInstalled = true;
+    this.backgrounded = document.hidden || !document.hasFocus();
+
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    window.addEventListener('blur', this.onWindowBlur);
+    window.addEventListener('focus', this.onWindowFocus);
+  }
+
+  removeBackgroundListeners(): void {
+    if (!this.backgroundListenersInstalled) return;
+    this.backgroundListenersInstalled = false;
+    this.backgrounded = false;
+    this.backgroundMicForced = false;
+
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    window.removeEventListener('blur', this.onWindowBlur);
+    window.removeEventListener('focus', this.onWindowFocus);
+  }
+
+  protected handleBackgroundChange(): void {
+    if (!this.connected) return;
+
+    const background = document.hidden || !document.hasFocus();
+    if (background === this.backgrounded) return;
+
+    this.backgrounded = background;
+
+    if (background) {
+      // Browsers do not deliver keyup/keydown while another window owns focus.
+      const wasPttActive = this.pttActive;
+      this.pttActive = false;
+
+      const prefs = this.preferences();
+
+      if (prefs.backgroundMic && !this.manualMuted && !this.microphone) {
+        this.micBeforeBackground = false;
+        this.backgroundMicForced = true;
+        this.enableMic();
+      } else if (!prefs.backgroundMic && wasPttActive && this.microphone) {
+        this.disableMic();
+      }
+    } else {
+      this.markActivity();
+
+      if (this.backgroundMicForced) {
+        this.backgroundMicForced = false;
+
+        if (!this.micBeforeBackground && !this.manualMuted && !this.pttActive) {
+          this.disableMic();
+        }
+      }
+    }
+
+    m.redraw();
+  }
+
+  markActivity(): void {
+    this.afkLastActivity = Date.now();
+  }
+
+  afkConfig(): { roomId: number; timeout: number } {
+    const config = SocialState.config.voice || {};
+
+    return {
+      roomId: Number(config.afkRoomId || 0),
+      timeout: Number(config.afkTimeoutMinutes || 0),
+    };
+  }
+
+  installAfkMonitor(): void {
+    this.removeAfkMonitor();
+
+    if (!this.connected || !this.roomInfo) return;
+
+    const config = this.afkConfig();
+
+    if (!config.roomId || config.timeout <= 0 || Number(this.roomInfo.id) === config.roomId) {
+      return;
+    }
+
+    this.afkLastActivity = Date.now();
+    this.afkListenersInstalled = true;
+    this.afkInterval = window.setInterval(() => this.checkAfk(), 15000);
+
+    document.addEventListener('keydown', this.onAfkActivity, true);
+    document.addEventListener('pointerdown', this.onAfkActivity, true);
+    document.addEventListener('pointermove', this.onAfkActivity, true);
+    document.addEventListener('wheel', this.onAfkActivity, true);
+    document.addEventListener('touchstart', this.onAfkActivity, true);
+  }
+
+  removeAfkMonitor(): void {
+    if (this.afkInterval !== null) window.clearInterval(this.afkInterval);
+    this.afkInterval = null;
+
+    if (!this.afkListenersInstalled) return;
+    this.afkListenersInstalled = false;
+
+    document.removeEventListener('keydown', this.onAfkActivity, true);
+    document.removeEventListener('pointerdown', this.onAfkActivity, true);
+    document.removeEventListener('pointermove', this.onAfkActivity, true);
+    document.removeEventListener('wheel', this.onAfkActivity, true);
+    document.removeEventListener('touchstart', this.onAfkActivity, true);
+  }
+
+  checkAfk(): void {
+    if (!this.connected || this.afkMoving || !this.roomInfo) return;
+
+    const config = this.afkConfig();
+
+    if (!config.roomId || config.timeout <= 0 || Number(this.roomInfo.id) === config.roomId) {
+      return;
+    }
+
+    if (Date.now() - this.afkLastActivity < config.timeout * 60 * 1000) return;
+
+    this.moveToAfk(config.roomId);
+  }
+
+  async moveToAfk(afkRoomId: number): Promise<void> {
+    if (this.afkMoving || !this.connected || !this.roomInfo) return;
+
+    this.afkMoving = true;
+    this.removeAfkMonitor();
+
+    const previous = this.roomInfo;
+
+    try {
+      const response: any = await get(`/social/rooms/${afkRoomId}`);
+      const afkRoom = response.data;
+
+      if (!afkRoom?.isVoice || !afkRoom.canJoin || afkRoom.isLocked) {
+        this.afkLastActivity = Date.now();
+        return;
+      }
+
+      this.previousRoomInfo = previous;
+      this.deafenedBeforeAfk = this.deafened;
+      await this.disconnect();
+      await this.connect(afkRoom);
+
+      if (this.connected) {
+        if (!this.deafened) this.toggleDeafen();
+        await this.disableMic();
+        this.manualMuted = true;
+        this.afkLastActivity = Date.now();
+        this.showAfkAlert();
+      } else {
+        this.previousRoomInfo = null;
+
+        if (previous) await this.connect(previous);
+      }
+    } catch (e) {
+      this.previousRoomInfo = null;
+
+      if (previous) await this.connect(previous);
+    } finally {
+      this.afkMoving = false;
+
+      if (this.connected && this.roomInfo && Number(this.roomInfo.id) !== this.afkConfig().roomId) {
+        this.installAfkMonitor();
+      }
+    }
+  }
+
+  showAfkAlert(): void {
+    const title = app.translator.trans('cengizkemec-social.forum.voice.afk_moved_title') as string;
+    const body = app.translator.trans('cengizkemec-social.forum.voice.afk_moved') as string;
+
+    this.afkAlertId = app.alerts.show(
+      {
+        type: 'warning',
+        icon: 'fas fa-moon',
+        title,
+        controls: this.previousRoomInfo
+          ? [m('button', {
+              className: 'Button Button--link',
+              onclick: () => this.returnFromAfk(),
+            }, app.translator.trans('cengizkemec-social.forum.voice.afk_return'))]
+          : [],
+      },
+      body
+    );
+  }
+
+  async returnFromAfk(): Promise<void> {
+    if (this.afkMoving || !this.previousRoomInfo) return;
+
+    this.afkMoving = true;
+    const previous = this.previousRoomInfo;
+
+    try {
+      const response: any = await get(`/social/rooms/${previous.id}`);
+      const room = response.data;
+
+      if (!room?.isVoice || !room.canJoin || room.isLocked) {
+        app.alerts.show({ type: 'error' }, app.translator.trans('cengizkemec-social.forum.voice.afk_return_failed'));
+        return;
+      }
+
+      await this.connect(room);
+
+      if (this.connected) {
+        this.previousRoomInfo = null;
+
+        if (this.afkAlertId !== null) {
+          app.alerts.dismiss(this.afkAlertId);
+          this.afkAlertId = null;
+        }
+
+        if (this.deafened && !this.deafenedBeforeAfk) {
+          this.toggleDeafen();
+        }
+
+        this.deafenedBeforeAfk = false;
+      }
+    } catch (e) {
+      app.alerts.show({ type: 'error' }, app.translator.trans('cengizkemec-social.forum.voice.afk_return_failed'));
+    } finally {
+      this.afkMoving = false;
+    }
+  }
+
   async disconnect(): Promise<void> {
     const roomId = this.roomInfo?.id;
 
@@ -457,6 +861,23 @@ class VoiceSession {
     this.microphone = false;
     this.screenSharing = false;
     this.error = null;
+    this.latencyMs = null;
+    this.latencyHistory = [];
+    this.connectionQuality = 'unknown';
+    this.announcedScreenShares.clear();
+    this.manualMuted = false;
+    this.backgroundMicForced = false;
+    this.afkLastActivity = Date.now();
+
+    if (!this.afkMoving) {
+      this.previousRoomInfo = null;
+      this.deafenedBeforeAfk = false;
+
+      if (this.afkAlertId !== null) {
+        app.alerts.dismiss(this.afkAlertId);
+        this.afkAlertId = null;
+      }
+    }
 
     if (roomId) {
       post(`/social/rooms/${roomId}/leave`).catch(() => {});
@@ -468,9 +889,14 @@ class VoiceSession {
 
   cleanup(): void {
     this.removePtt();
+    this.removeBackgroundListeners();
+    this.removeAfkMonitor();
 
     if (this.heartbeat) window.clearInterval(this.heartbeat);
     this.heartbeat = null;
+
+    if (this.statsInterval) window.clearInterval(this.statsInterval);
+    this.statsInterval = null;
 
     this.audioElements.forEach((element) => element.remove());
     this.audioElements.clear();

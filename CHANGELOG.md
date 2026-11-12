@@ -2,6 +2,18 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.6 - 2026-11-12
+
+- Screen sharing now sends a realtime notification to every participant connected to the voice room: a toast names the sharer, a short sound cue plays, and **View** opens the room on the voice tab. Members can opt into desktop notifications for background alerts.
+- Added a Discord-style ping graph to the connection-info panel. It keeps the last five minutes of latency and shows current, minimum, average and maximum values.
+- Added **Keep microphone open in the background** to personal voice settings. Browsers cannot capture push-to-talk keys while another window has focus; this option keeps the microphone active when the tab loses focus, while the default behaviour now safely releases a stuck push-to-talk state when the tab is hidden.
+- Added an ACP-selectable **AFK room** and **AFK timeout**. Inactive members are moved to the AFK room after the configured period with microphone and sound disabled, and can return to their previous room from the notification.
+- Added **Move up / Move down** controls for rooms and categories in the ACP, backed by reorder endpoints.
+- LiveKit rooms now use the human-readable room name plus a numeric suffix (for example `Genel Sohbet 1 (#1)`) so the LiveKit dashboard matches the names members see. Old `social-room-*` webhook names remain supported.
+- Live-tested on `warthunder.tr` with two temporary accounts: voice join, screen-share toast, ping graph and AFK move all worked. Temporary accounts and test settings were removed afterwards.
+- English and Turkish locale parity is maintained at 813 keys.
+- No database changes are required.
+
 ## 1.1.5 - 2026-11-12
 
 - Replaced the browser `prompt()` used for editing room categories with an inline Flarum ACP form (name and icon fields plus Save/Cancel).

@@ -107,6 +107,8 @@ class SocialSettings
         'max_screen_shares' => 2,
         'voice_reconnect' => true,
         'voice_sounds' => true,
+        'afk_room_id' => 0,
+        'afk_timeout_minutes' => 30,
 
         'allow_user_rooms' => true,
         'user_room_max_per_user' => 3,
@@ -264,6 +266,8 @@ class SocialSettings
                 'maxScreenShares' => (int) $this->get('max_screen_shares'),
                 'reconnect' => $this->bool('voice_reconnect'),
                 'sounds' => $this->bool('voice_sounds'),
+                'afkRoomId' => $this->int('afk_room_id'),
+                'afkTimeoutMinutes' => max(0, $this->int('afk_timeout_minutes')),
                 'turn' => [
                     'urls' => $this->get('turn_url') ? [$this->get('turn_url')] : [],
                     'username' => $this->get('turn_username'),

@@ -16,6 +16,24 @@ export default class RoomPage extends SocialPage {
   menuOpen = false;
   loginPrompted = false;
   pendingInvite: string | null = null;
+  screenShareHandler = (event: Event) => {
+    const detail = (event as CustomEvent).detail;
+
+    if (this.room?.isVoice && Number(detail?.roomId) === Number(this.room.id) && this.tab !== 'voice') {
+      this.tab = 'voice';
+      m.redraw();
+    }
+  };
+
+  oninit(vnode: any): void {
+    super.oninit(vnode);
+    window.addEventListener('social:screenshare-started', this.screenShareHandler);
+  }
+
+  onremove(vnode: any): void {
+    window.removeEventListener('social:screenshare-started', this.screenShareHandler);
+    super.onremove(vnode);
+  }
 
   pageTitle(): string {
     return this.room?.name || (app.translator.trans('cengizkemec-social.forum.nav.rooms') as string);
@@ -40,6 +58,11 @@ export default class RoomPage extends SocialPage {
       const token = this.pendingInvite;
       this.pendingInvite = null;
       this.acceptInvite(token);
+    }
+
+    if (this.room?.isVoice && m.route.param('voice') && this.tab !== 'voice') {
+      this.tab = 'voice';
+      window.history.replaceState({}, '', app.route('social.room', { slug: this.room.slug || this.room.id }));
     }
   }
 

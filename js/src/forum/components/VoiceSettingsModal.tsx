@@ -25,6 +25,8 @@ export default class VoiceSettingsModal extends Modal {
       noiseSuppression: personal.noiseSuppression ?? config.noiseSuppression !== false,
       echoCancellation: personal.echoCancellation ?? config.echoCancellation !== false,
       autoGainControl: personal.autoGainControl ?? config.autoGainControl !== false,
+      backgroundMic: personal.backgroundMic ?? false,
+      desktopNotifications: personal.desktopNotifications ?? false,
     };
   }
 
@@ -53,6 +55,18 @@ export default class VoiceSettingsModal extends Modal {
   save(): void {
     if (this.saving) return;
     this.saving = true;
+
+    if (this.form.desktopNotifications) {
+      try {
+        if ('Notification' in window && Notification.permission === 'default') {
+          const request: any = Notification.requestPermission();
+
+          if (request && typeof request.catch === 'function') request.catch(() => {});
+        }
+      } catch (e) {
+        // The browser may only allow this in response to a direct click.
+      }
+    }
 
     patch('/social/me/profile', { voice_settings: this.form })
       .then((response: any) => {
@@ -123,6 +137,8 @@ export default class VoiceSettingsModal extends Modal {
         : null,
       toggle('sounds', app.translator.trans('cengizkemec-social.forum.voice.sounds'), app.translator.trans('cengizkemec-social.forum.voice.sounds_help')),
       toggle('defaultMuted', app.translator.trans('cengizkemec-social.forum.voice.default_muted')),
+      toggle('backgroundMic', app.translator.trans('cengizkemec-social.forum.voice.background_mic'), app.translator.trans('cengizkemec-social.forum.voice.background_mic_help')),
+      toggle('desktopNotifications', app.translator.trans('cengizkemec-social.forum.voice.desktop_notifications'), app.translator.trans('cengizkemec-social.forum.voice.desktop_notifications_help')),
       toggle('noiseSuppression', app.translator.trans('cengizkemec-social.forum.voice.noise_suppression')),
       toggle('echoCancellation', app.translator.trans('cengizkemec-social.forum.voice.echo_cancellation')),
       toggle('autoGainControl', app.translator.trans('cengizkemec-social.forum.voice.auto_gain')),

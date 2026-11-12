@@ -201,7 +201,7 @@ class ProfileController extends AbstractSocialController
             $voice = is_array($settings['voice'] ?? null) ? $settings['voice'] : [];
             $incoming = $body['voice_settings'];
 
-            foreach (['pushToTalk', 'sounds', 'defaultMuted', 'noiseSuppression', 'echoCancellation', 'autoGainControl'] as $flag) {
+            foreach (['pushToTalk', 'sounds', 'defaultMuted', 'noiseSuppression', 'echoCancellation', 'autoGainControl', 'backgroundMic', 'desktopNotifications'] as $flag) {
                 if (array_key_exists($flag, $incoming)) {
                     $voice[$flag] = (bool) $incoming[$flag];
                 }

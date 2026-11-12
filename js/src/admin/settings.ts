@@ -108,6 +108,7 @@ export const SETTING_GROUPS: Record<string, SettingItem[]> = {
     { key: 'screen_sharing' },
     { key: 'max_screen_shares', type: 'number', min: 1, max: 10 },
     { key: 'voice_reconnect' },
+    { key: 'afk_timeout_minutes', type: 'number', min: 1, max: 1440 },
   ],
   rooms: [
     { key: 'allow_user_rooms' },

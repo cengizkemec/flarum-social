@@ -43,9 +43,11 @@ class AdminRoomController extends AbstractSocialController
         return match ($this->routeName($request)) {
             'social.admin.rooms.index' => $this->index($request),
             'social.admin.rooms.create' => $this->createRoom($request),
+            'social.admin.rooms.reorder' => $this->reorderRooms($request),
             'social.admin.rooms.update' => $this->updateRoom($request),
             'social.admin.rooms.delete' => $this->deleteRoom($request),
             'social.admin.categories.create' => $this->createCategory($request),
+            'social.admin.categories.reorder' => $this->reorderCategories($request),
             'social.admin.categories.update' => $this->updateCategory($request),
             'social.admin.categories.delete' => $this->deleteCategory($request),
             'social.admin.channels.create' => $this->createChannel($request),
@@ -275,6 +277,68 @@ class AdminRoomController extends AbstractSocialController
         $this->audit('social.room.deleted', ['room_id' => (int) $room->id, 'admin' => true]);
 
         return $this->json(['data' => ['deleted' => true]]);
+    }
+
+    protected function reorderRooms(ServerRequestInterface $request): ResponseInterface
+    {
+        $ids = $this->intArray($this->body($request)['ids'] ?? []);
+
+        if (! $ids) {
+            $this->validationError('rooms_required');
+        }
+
+        $rooms = Room::query()->whereIn('id', $ids)->get()->keyBy('id');
+        $position = 0;
+
+        foreach ($ids as $id) {
+            $room = $rooms->get($id);
+
+            if (! $room) {
+                continue;
+            }
+
+            $room->sort_order = $position;
+            $room->updated_at = \Illuminate\Support\now();
+            $room->save();
+            $position += 10;
+        }
+
+        $this->realtime->publish('social:rooms', ['type' => 'rooms.reordered']);
+        $this->logs->log($this->actor($request), 'admin.rooms.reordered', 'room', 0);
+        $this->audit('social.rooms.reordered', ['ids' => $ids]);
+
+        return $this->json(['data' => ['reordered' => true]]);
+    }
+
+    protected function reorderCategories(ServerRequestInterface $request): ResponseInterface
+    {
+        $ids = $this->intArray($this->body($request)['ids'] ?? []);
+
+        if (! $ids) {
+            $this->validationError('categories_required');
+        }
+
+        $categories = RoomCategory::query()->whereIn('id', $ids)->get()->keyBy('id');
+        $position = 0;
+
+        foreach ($ids as $id) {
+            $category = $categories->get($id);
+
+            if (! $category) {
+                continue;
+            }
+
+            $category->sort_order = $position;
+            $category->updated_at = \Illuminate\Support\now();
+            $category->save();
+            $position += 10;
+        }
+
+        $this->realtime->publish('social:rooms', ['type' => 'rooms.reordered']);
+        $this->logs->log($this->actor($request), 'admin.categories.reordered', 'category', 0);
+        $this->audit('social.categories.reordered', ['ids' => $ids]);
+
+        return $this->json(['data' => ['reordered' => true]]);
     }
 
     protected function createCategory(ServerRequestInterface $request): ResponseInterface
