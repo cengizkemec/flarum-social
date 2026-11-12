@@ -489,6 +489,7 @@ cengizkemec-social:
       save: "Değişiklikleri kaydet"
       edit: "Düzenle"
       delete: "Sil"
+      cancel: "Vazgeç"
       refresh: "Yenile"
       retry: "Tekrar dene"
     tabs:

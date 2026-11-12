@@ -2,6 +2,12 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.5 - 2026-11-12
+
+- Replaced the browser `prompt()` used for editing room categories with an inline Flarum ACP form (name and icon fields plus Save/Cancel).
+- Added the author homepage to `composer.json`, so both the extension-page author link and the ACP credit link for **Cengiz Kemec** open `https://cengizkemec.com.tr/`.
+- No database changes are required.
+
 ## 1.1.4 - 2026-11-12
 
 - Removed Flarum's residual `.App` top padding on Social pages so the Social header sits directly at the top instead of leaving a blank 52px strip.

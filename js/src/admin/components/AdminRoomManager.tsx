@@ -9,6 +9,9 @@ export default class AdminRoomManager {
   error: string | null = null;
   categoryName = '';
   categoryIcon = 'fas fa-folder';
+  editingCategoryId: number | null = null;
+  editCategoryName = '';
+  editCategoryIcon = 'fas fa-folder';
   channelName = '';
   channelRoom = '';
   channelCategory = '';
@@ -61,12 +64,33 @@ export default class AdminRoomManager {
       .catch((error: any) => app.alerts.show({ type: 'error' }, error.message));
   }
 
-  editCategory(category: any): void {
-    const name = prompt(app.translator.trans('cengizkemec-social.admin.rooms.category_name') as string, category.name);
-    if (name === null) return;
+  startEditCategory(category: any): void {
+    this.editingCategoryId = Number(category.id);
+    this.editCategoryName = category.name || '';
+    this.editCategoryIcon = category.icon || 'fas fa-folder';
+    m.redraw();
+  }
 
-    adminPatch(`/social/admin/categories/${category.id}`, { name })
-      .then(() => this.load())
+  cancelEditCategory(): void {
+    this.editingCategoryId = null;
+    this.editCategoryName = '';
+    this.editCategoryIcon = 'fas fa-folder';
+    m.redraw();
+  }
+
+  saveCategory(category: any): void {
+    const name = this.editCategoryName.trim();
+
+    if (!name) return;
+
+    adminPatch(`/social/admin/categories/${category.id}`, {
+      name,
+      icon: this.editCategoryIcon.trim() || 'fas fa-folder',
+    })
+      .then(() => {
+        this.cancelEditCategory();
+        this.load();
+      })
       .catch((error: any) => app.alerts.show({ type: 'error' }, error.message));
   }
 
@@ -124,13 +148,35 @@ export default class AdminRoomManager {
           m(Button, { className: 'Button', onclick: () => this.addCategory() }, app.translator.trans('cengizkemec-social.admin.rooms.add_category')),
         ]),
         m('div', { className: 'SocialAdminList' }, categories.map((category: any) =>
-          m('div', { className: 'SocialAdminList-row' }, [
-            m('span', { className: 'SocialAdminList-main' }, [m('i', { className: category.icon || 'fas fa-folder' }), m('strong', {}, category.name), m('small', {}, rooms.filter((room: any) => room.categoryId === category.id).length + ' ' + app.translator.trans('cengizkemec-social.admin.rooms.rooms'))]),
-            m('div', { className: 'SocialAdminList-actions' }, [
-              m(Button, { className: 'Button Button--link Button--small', onclick: () => this.editCategory(category) }, app.translator.trans('cengizkemec-social.admin.common.edit')),
-              m(Button, { className: 'Button Button--link Button--small', onclick: () => this.removeCategory(category) }, app.translator.trans('cengizkemec-social.admin.common.delete')),
-            ]),
-          ])
+          this.editingCategoryId === Number(category.id)
+            ? m('div', { className: 'SocialAdminList-row SocialAdminList-row--editing' }, [
+                m('span', { className: 'SocialAdminList-main' }, [
+                  m('input', {
+                    className: 'FormControl',
+                    value: this.editCategoryName,
+                    placeholder: app.translator.trans('cengizkemec-social.admin.rooms.category_name'),
+                    oninput: (event: Event) => (this.editCategoryName = (event.target as HTMLInputElement).value),
+                  }),
+                  m('input', {
+                    className: 'FormControl',
+                    value: this.editCategoryIcon,
+                    placeholder: 'fas fa-folder',
+                    'aria-label': app.translator.trans('cengizkemec-social.admin.rooms.icon'),
+                    oninput: (event: Event) => (this.editCategoryIcon = (event.target as HTMLInputElement).value),
+                  }),
+                ]),
+                m('div', { className: 'SocialAdminList-actions' }, [
+                  m(Button, { className: 'Button Button--primary Button--small', onclick: () => this.saveCategory(category) }, app.translator.trans('cengizkemec-social.admin.common.save')),
+                  m(Button, { className: 'Button Button--link Button--small', onclick: () => this.cancelEditCategory() }, app.translator.trans('cengizkemec-social.admin.common.cancel')),
+                ]),
+              ])
+            : m('div', { className: 'SocialAdminList-row' }, [
+                m('span', { className: 'SocialAdminList-main' }, [m('i', { className: category.icon || 'fas fa-folder' }), m('strong', {}, category.name), m('small', {}, rooms.filter((room: any) => room.categoryId === category.id).length + ' ' + app.translator.trans('cengizkemec-social.admin.rooms.rooms'))]),
+                m('div', { className: 'SocialAdminList-actions' }, [
+                  m(Button, { className: 'Button Button--link Button--small', onclick: () => this.startEditCategory(category) }, app.translator.trans('cengizkemec-social.admin.common.edit')),
+                  m(Button, { className: 'Button Button--link Button--small', onclick: () => this.removeCategory(category) }, app.translator.trans('cengizkemec-social.admin.common.delete')),
+                ]),
+              ])
         )),
       ]),
 

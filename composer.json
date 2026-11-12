@@ -15,7 +15,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Cengiz Kemec"
+            "name": "Cengiz Kemec",
+            "homepage": "https://cengizkemec.com.tr/"
         }
     ],
     "homepage": "https://github.com/cengizkemec/flarum-social",

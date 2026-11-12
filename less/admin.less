@@ -250,6 +250,27 @@
   flex-wrap: wrap;
 }
 
+.SocialAdminList-row--editing {
+  align-items: center;
+
+  .SocialAdminList-main {
+    flex: 1;
+    gap: 6px;
+  }
+
+  .FormControl {
+    min-width: 110px;
+  }
+
+  .SocialAdminList-main .FormControl:first-child {
+    flex: 1 1 180px;
+  }
+
+  .SocialAdminList-main .FormControl + .FormControl {
+    flex: 0 1 150px;
+  }
+}
+
 .SocialAdminMuted {
   color: var(--muted-color);
   font-size: 10px;
