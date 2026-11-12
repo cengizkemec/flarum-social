@@ -2,6 +2,12 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.3 - 2026-11-12
+
+- Changed the self-profile action from “Flarum profilinde düzenle” to **“Profilini düzenle”** and the English equivalent to **“Edit profile”** so members do not need to know the forum software.
+- Removed user-facing Flarum wording from the profile cover hint, guest posting prompt, community description and native-message label.
+- Kept technical Flarum references only in administrator settings, permissions and documentation.
+
 ## 1.1.2 - 2026-11-12
 
 - Replaced the Social header's Font Awesome brand icon with the forum's own light or dark-mode logo from Flarum's Appearance settings.

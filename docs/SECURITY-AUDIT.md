@@ -1,4 +1,4 @@
-# Security audit — Flarum Social 1.1.2
+# Security audit — Flarum Social 1.1.3
 
 Date: 2026-11-12
 Target: Flarum 2.0.2, PHP 8.4, MariaDB 11.8, extension `cengizkemec-social`, LiveKit server on localhost and `warthunder.tr`.
