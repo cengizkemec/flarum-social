@@ -2,6 +2,16 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.4 - 2026-11-12
+
+- Removed Flarum's residual `.App` top padding on Social pages so the Social header sits directly at the top instead of leaving a blank 52px strip.
+- Fixed the visual header jump when SPA-navigating between the forum and Social; the Flarum header and Social header now hand over cleanly in both directions.
+- Added a story viewers list. Story owners and staff can click the eye counter to see members who viewed the story, with avatar, display name, role colour and view time.
+- Non-owners receive `403` when requesting another member's story viewer list.
+- Verified the forum sidebar **Sosyal** link and the Social header **Forum** link in both directions with no console errors.
+- Live-tested story viewers with two temporary member accounts on `warthunder.tr`; the test story and accounts were removed afterwards.
+- No database changes are required.
+
 ## 1.1.3 - 2026-11-12
 
 - Changed the self-profile action from “Flarum profilinde düzenle” to **“Profilini düzenle”** and the English equivalent to **“Edit profile”** so members do not need to know the forum software.

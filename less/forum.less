@@ -12,6 +12,12 @@
 .SocialPage-body {
   // Social renders its own integrated header; hide Flarum's global header so
   // the page never shows two navigation bars.
+  &.App {
+    // Flarum reserves the fixed App-header height on .App. When the header is
+    // hidden, that reservation becomes an empty strip above SocialHeader.
+    padding-top: 0 !important;
+  }
+
   #header {
     display: none !important;
   }
@@ -2993,6 +2999,87 @@
   &:disabled {
     opacity: 0.25;
   }
+}
+
+.SocialStoryViewer-views.Button--link {
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0;
+  font-size: 11px;
+
+  &:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+}
+
+.SocialStoryViewers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.SocialStoryViewers-count {
+  color: var(--muted-color);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.SocialStoryViewers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.SocialStoryViewersModal .SocialStoryViewers-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--text-color);
+}
+
+.SocialStoryViewersModal .SocialStoryViewers-user:hover {
+  background: var(--control-bg);
+  color: var(--heading-color);
+}
+
+.SocialStoryViewers-userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  small {
+    color: var(--muted-color);
+    font-size: 11px;
+  }
+}
+
+.SocialStoryViewers-time {
+  flex: 0 0 auto;
+  color: var(--muted-color);
+  font-size: 11px;
+}
+
+.SocialStoryViewers-empty,
+.SocialStoryViewers-loading {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--muted-color);
+  font-size: 13px;
 }
 
 .SocialComments {

@@ -136,6 +136,7 @@ return [
 
         ->get('/social/stories', 'social.stories.index', Controller\StoryController::class)
         ->post('/social/stories', 'social.stories.create', Controller\StoryController::class)
+        ->get('/social/stories/{id}/views', 'social.stories.views', Controller\StoryController::class)
         ->post('/social/stories/{id}/view', 'social.stories.view', Controller\StoryController::class)
         ->delete('/social/stories/{id}', 'social.stories.delete', Controller\StoryController::class)
 

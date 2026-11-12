@@ -156,7 +156,12 @@ export default class StoryViewerModal extends Modal {
           : null,
       ]),
       m('div', { className: 'SocialStoryViewer-meta' }, [
-        m('span', {}, [m('i', { className: 'far fa-eye' }), ' ', story.viewsCount || 0]),
+        story.canViewViewers
+          ? m(Button, {
+              className: 'Button Button--link SocialStoryViewer-views',
+              onclick: () => app.modal.show(() => import('./StoryViewersModal'), { story }),
+            }, [m('i', { className: 'far fa-eye' }), ' ', story.viewsCount || 0])
+          : m('span', {}, [m('i', { className: 'far fa-eye' }), ' ', story.viewsCount || 0]),
         story.canDelete
           ? m(Button, {
               className: 'Button Button--link SocialStoryViewer-delete',

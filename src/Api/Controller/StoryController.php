@@ -34,6 +34,7 @@ class StoryController extends AbstractSocialController
         return match ($this->routeName($request)) {
             'social.stories.index' => $this->index($request),
             'social.stories.create' => $this->create($request),
+            'social.stories.views' => $this->views($request),
             'social.stories.view' => $this->view($request),
             'social.stories.delete' => $this->delete($request),
             default => $this->notFound(),
@@ -79,6 +80,7 @@ class StoryController extends AbstractSocialController
                     'expiresAt' => $story->expires_at?->toIso8601String(),
                     'viewsCount' => (int) $story->views_count,
                     'viewed' => $viewed->has($story->id),
+                    'canViewViewers' => ! $actor->isGuest() && ((int) $story->user_id === (int) $actor->id || $this->access->isStaff($actor)),
                     'canDelete' => ! $actor->isGuest() && ((int) $story->user_id === (int) $actor->id || $this->access->isStaff($actor)),
                 ])->all(),
             ];
@@ -174,6 +176,42 @@ class StoryController extends AbstractSocialController
         }
 
         return $this->json(['data' => ['viewed' => true, 'viewsCount' => (int) $story->views_count]]);
+    }
+
+    protected function views(ServerRequestInterface $request): ResponseInterface
+    {
+        $actor = $this->actor($request);
+        $actor->assertRegistered();
+
+        $story = Story::query()->find((int) $this->routeParam($request, 'id'));
+
+        if (! $story || $story->expires_at->isPast()) {
+            return $this->notFound('story_not_found');
+        }
+
+        if ((int) $story->user_id !== (int) $actor->id && ! $this->access->isStaff($actor)) {
+            return $this->forbidden('story_viewers_forbidden');
+        }
+
+        $views = StoryView::query()
+            ->with('user')
+            ->where('story_id', $story->id)
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get()
+            ->filter(fn (StoryView $view) => $view->user !== null)
+            ->map(fn (StoryView $view) => array_merge($this->users->basic($view->user), [
+                'viewedAt' => $view->created_at?->toIso8601String(),
+            ]))
+            ->values()
+            ->all();
+
+        return $this->json([
+            'data' => [
+                'count' => (int) $story->views_count,
+                'users' => $views,
+            ],
+        ]);
     }
 
     protected function delete(ServerRequestInterface $request): ResponseInterface
