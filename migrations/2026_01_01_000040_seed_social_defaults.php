@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Str;
 
 return [
     'up' => function (Builder $schema) {
@@ -111,6 +112,7 @@ return [
                 'owner_id' => null,
                 'type' => 'permanent',
                 'name' => $name,
+                'slug' => Str::slug($name),
                 'description' => $description,
                 'icon' => $icon,
                 'visibility' => $visibility,

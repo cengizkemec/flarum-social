@@ -49,7 +49,6 @@ export default class SocialNewsWidget {
     if (!this.lines.length) return null;
 
     return m('div', { className: 'SocialNewsWidget', role: 'status' }, [
-      m('span', { className: 'SocialNewsWidget-icon' }, m('i', { className: 'fas fa-bullhorn' })),
       m('div', { className: 'SocialNewsWidget-lines' }, this.lines.map((line, index) =>
         m('div', {
           className:

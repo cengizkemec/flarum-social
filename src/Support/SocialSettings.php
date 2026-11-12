@@ -43,7 +43,7 @@ class SocialSettings
         'avatar_display' => true,
         'participant_display' => true,
         'leaderboard_limit' => 10,
-        'nav_position' => 'both',
+        'nav_position' => 'sidebar',
         'forum_voice_widget' => true,
         'forum_social_menu' => true,
         'forum_categories_in_social' => true,

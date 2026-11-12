@@ -1,7 +1,7 @@
-# Security audit — Flarum Social 1.1.0
+# Security audit — Flarum Social 1.1.1
 
-Date: 2026-11-10
-Target: Flarum 2.0.2, PHP 8.4, SQLite test installation, extension `cengizkemec-social`, LiveKit development server.
+Date: 2026-11-12
+Target: Flarum 2.0.2, PHP 8.4, MariaDB 11.8, extension `cengizkemec-social`, LiveKit server on localhost and `warthunder.tr`.
 
 This is a practical audit of the extension surface plus a live HTTP test matrix. It is not a formal third-party penetration test.
 
@@ -35,7 +35,7 @@ This is a practical audit of the extension surface plus a live HTTP test matrix.
 
 ## LiveKit and screen-sharing validation
 
-The 1.1.0 release was tested against a real LiveKit development server, not only signed tokens:
+The extension was tested against real LiveKit servers, not only signed tokens:
 
 - LiveKit server `--dev` at `ws://127.0.0.1:7880` with the development key/secret.
 - Two native Flarum users (admin and member1) joined the same public voice room.
@@ -46,6 +46,9 @@ The 1.1.0 release was tested against a real LiveKit development server, not only
 - A media lightbox open/close test produced no JavaScript console errors.
 - ACP text/password fields for LiveKit, TURN, S3, Centrifugo and group-ID settings rendered correctly; the ACP save-and-revert test passed.
 - No `__LiveKitRoom` or `__socialVoice` integration-test hooks remain in the production bundle.
+
+- A live deployment test on `warthunder.tr` used two temporary member accounts in the General room. Both joined voice, microphone was enabled, the sharer produced a 1920x1080 local screen-share preview, and the second member received the 960x540 remote share with no browser console errors.
+- The live deployment's `Permissions-Policy` was corrected from `microphone=()` to `microphone=(self), camera=(self), display-capture=(self)` so voice capture is permitted on the HTTPS origin. Temporary test accounts were removed afterwards.
 
 This closes the previous "LiveKit was not running" gap for local voice transport and screen sharing. Centrifugo realtime delivery and TURN traversal still need a staging test on the target network.
 
@@ -83,7 +86,7 @@ This closes the previous "LiveKit was not running" gap for local voice transport
 - **Media:** PHP upload rejected (422), restricted uploader rejected (403), guest temporary file rejected (403), owner/admin allowed. Range requests and `nosniff` are implemented.
 - **Slugs:** custom admin slug accepted; numeric legacy URLs still resolve.
 - **Cleanup:** empty temporary room deleted after the configured grace period; permanent rooms and their counts remain.
-- **Locale parity:** 780 keys in both `en.yml` and `tr.yml`.
+- **Locale parity:** 781 keys in both `en.yml` and `tr.yml`.
 - **Build/lint:** production build completed with only webpack size/runtime warnings; all PHP files passed `php -l`.
 
 ## Residual risks and deployment notes

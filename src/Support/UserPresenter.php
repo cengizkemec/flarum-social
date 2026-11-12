@@ -26,6 +26,18 @@ class UserPresenter
      */
     protected function nativeCover(User $user): ?string
     {
+        // Cover Studio stores its URL in a companion relation and already
+        // returns a fully-qualified URL. Prefer it when a cover is active.
+        try {
+            $coverStudio = $user->coverStudioData ?? null;
+
+            if ($coverStudio && ! empty($coverStudio->cover_file_id) && ! empty($coverStudio->cover_url)) {
+                return (string) $coverStudio->cover_url;
+            }
+        } catch (\Throwable $e) {
+            // Cover Studio is optional.
+        }
+
         $cover = $user->cover ?? null;
 
         if (! $cover) {
@@ -45,12 +57,41 @@ class UserPresenter
         }
     }
 
+    /**
+     * Return the highest-priority visible group colour, if the group has one.
+     * Social uses it only as a name accent; it never replaces the theme's
+     * readable text colour when a group has no colour.
+     */
+    protected function role(User $user): array
+    {
+        try {
+            $group = $user->groups
+                ->filter(fn ($group) => ! empty($group->color))
+                ->sortByDesc('position')
+                ->first();
+
+            if (! $group) {
+                return [null, null];
+            }
+
+            $color = trim((string) $group->color);
+
+            return [
+                preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i', $color) ? $color : null,
+                $group->name_singular ?: null,
+            ];
+        } catch (\Throwable $e) {
+            return [null, null];
+        }
+    }
+
     public function basic(User $user): array
     {
         $lastSeen = $user->last_seen_at;
         $preferences = $this->preference($user);
         $nativeCover = $this->nativeCover($user);
         $nativeBio = isset($user->bio) ? trim(strip_tags((string) $user->bio)) : null;
+        [$roleColor, $roleName] = $this->role($user);
 
         return [
             'id' => (int) $user->id,
@@ -59,6 +100,8 @@ class UserPresenter
             'avatarUrl' => $user->avatar_url,
             'coverUrl' => $nativeCover ?: ($preferences->cover_url ?? null),
             'bio' => $nativeBio ?: ($preferences->bio ?? null),
+            'roleColor' => $roleColor,
+            'roleName' => $roleName,
             'online' => $lastSeen !== null && $lastSeen->gt(\Illuminate\Support\now()->subMinutes(5)),
             'isAdmin' => $user->isAdmin(),
         ];

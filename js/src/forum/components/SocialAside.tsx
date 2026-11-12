@@ -145,18 +145,22 @@ export default class SocialAside {
   }
 
   memberRow(user: any, online: boolean, count?: number | string): any {
+    const nameStyle = user.roleColor
+      ? { color: `color-mix(in srgb, ${user.roleColor} 72%, var(--heading-color))` }
+      : undefined;
+
     return m(
       'a',
       {
         className: 'SocialAside-member' + (online ? '' : ' is-offline'),
         href: app.route('user', { username: user.username }),
-        title: user.displayName,
+        title: user.roleName ? `${user.displayName} · ${user.roleName}` : user.displayName,
         onmouseenter: (event: MouseEvent) => this.showPreview(user, event),
         onmouseleave: () => this.hidePreview(),
       },
       [
         m('span', { className: 'SocialAside-avatar-wrap' }, [Avatar(user, 34), online ? m('span', { className: 'SocialAside-dot' }) : m('span', { className: 'SocialAside-dot SocialAside-dot--offline' })]),
-        m('span', { className: 'SocialAside-member-name' }, user.displayName),
+        m('span', { className: 'SocialAside-member-name', style: nameStyle }, user.displayName),
         count !== undefined ? m('span', { className: 'SocialAside-member-count' }, count) : null,
       ]
     );

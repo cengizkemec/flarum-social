@@ -20,6 +20,7 @@ cengizkemec-social:
       search_placeholder: "Kişi, gönderi, oda ara…"
       toggle_menu: "Sosyal menüyü aç/kapat"
       forum: "Forum"
+      community: "Topluluk"
       language: "Dil"
     time:
       just_now: "az önce"

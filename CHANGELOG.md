@@ -2,6 +2,18 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.1 - 2026-11-12
+
+- Made the Social header match the War Thunder theme: compact single-row navigation, uppercase condensed links, theme text colours and a red top rule in both dark and light modes.
+- Grouped all FoF Links into one **Community** dropdown and removed the duplicate Forum link, so the Social header no longer wraps into a second row.
+- Changed the default Social navigation placement to the Flarum side menu; administrators can add a header link through FoF Links if they want one.
+- Replaced hard-coded red Social sidebar and right-rail link colours with theme-aware text colours. Member names in online/offline and top lists now use their Flarum group colour when available.
+- Fixed the FoF News / announcement area: the configured HTML card is now shown at full width with its complete content instead of being clipped to one line.
+- Fixed room URLs to use readable slugs (`/social/rooms/general`, `/social/rooms/squadron`, ...) and added a backfill for existing installations. New installations seed slugged rooms directly.
+- Added native support for `tryhackx/flarum-cover-studio` covers through its companion relation, in addition to `sycho/flarum-profile-cover`.
+- Live-tested the header, announcement, room pages, profile cover and slug routing on `warthunder.tr` in both dark and light mode.
+- English and Turkish locale parity is maintained at 781 keys.
+
 ## 1.1.0 - 2026-11-10
 
 - Screen sharing now subscribes to remote screen-share publications explicitly and renders the active share for every member connected to the voice room, not only the sharer.

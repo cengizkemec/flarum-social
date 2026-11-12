@@ -15,43 +15,46 @@ export default class SocialHeader {
   }
 
   /**
-   * FoF Links stores its links in the Flarum store. Render the same root links
-   * and groups as the forum header so a link added in the admin panel appears
-   * in Social too, with the same visibility rules.
+   * FoF Links stores its links in the Flarum store. Social mirrors the same
+   * roots and groups in one compact "Community" dropdown so the Social header
+   * does not turn into a wall of links. A FoF "Forum" link is skipped because
+   * the Social header already has its own Forum link.
    */
   headerLinks(): any[] {
     try {
       const store: any = app.store;
       const all: any[] = typeof store.all === 'function' ? store.all('links') || [] : [];
+      const forumHref = String(app.route('index') || '/all').replace(/\/+$/, '') || '/all';
       const roots = all
         .filter((link: any) => !link.parent?.())
         .filter((link: any) => !(link.guestOnly?.() && app.session.user))
         .filter((link: any) => !(link.isRestricted?.() && !app.session.user))
         .sort((a: any, b: any) => (a.position?.() ?? 0) - (b.position?.() ?? 0));
 
+      const isForumLink = (link: any): boolean => {
+        const url = String(link.url?.() || '').replace(/\/+$/, '');
+        const title = String(link.title?.() || '').trim().toLowerCase();
+
+        return title === 'forum' || url === forumHref || url === '/all';
+      };
+
       return roots
         .map((link: any) => {
+          if (isForumLink(link)) return null;
+
           const children = all
             .filter((child: any) => child.parent?.()?.id?.() === link.id?.())
             .sort((a: any, b: any) => (a.position?.() ?? 0) - (b.position?.() ?? 0));
 
           if (children.length) {
-            return m(
-              Dropdown,
-              {
-                className: 'SocialHeader-linksDropdown',
-                buttonClassName: 'SocialHeader-link SocialHeader-linksToggle',
-                label: this.linkLabel(link),
-                accessibleToggleLabel: link.title?.(),
-              },
-              [
-                link.url?.() ? this.linkAnchor(link, true) : null,
-                ...children.map((child: any) => this.linkAnchor(child, true)),
-              ].filter(Boolean)
-            );
+            return m('div', { className: 'SocialHeader-menuGroup' }, [
+              m('div', { className: 'SocialHeader-menuLabel' }, this.linkLabel(link)),
+              link.url?.() ? this.linkAnchor(link, true) : null,
+              ...children.map((child: any) => this.linkAnchor(child, true)),
+            ].filter(Boolean));
           }
 
-          return link.url?.() ? this.linkAnchor(link) : null;
+          return link.url?.() ? this.linkAnchor(link, true) : null;
         })
         .filter(Boolean);
     } catch (e) {
@@ -86,6 +89,7 @@ export default class SocialHeader {
     const user = state.user;
     const locales = app.data.locales || {};
     const showLanguageSelector = app.forum.attribute<boolean>('showLanguageSelector') !== false && Object.keys(locales).length > 1;
+    const communityLinks = this.headerLinks();
 
     return m('header', { className: 'SocialHeader' }, [
       m('div', { className: 'SocialHeader-left' }, [
@@ -104,14 +108,25 @@ export default class SocialHeader {
         ]),
         m('nav', { className: 'SocialHeader-nav' }, [
           m('a', { className: 'SocialHeader-link SocialHeader-forum', href: app.route('index') }, [m('i', { className: 'fas fa-house' }), ' ', app.translator.trans('cengizkemec-social.forum.nav.forum')]),
-          m('a', { className: 'SocialHeader-link', href: app.route('social.explore') }, app.translator.trans('cengizkemec-social.forum.nav.explore')),
-          m('a', { className: 'SocialHeader-link', href: app.route('social.index') }, app.translator.trans('cengizkemec-social.forum.nav.feed')),
-          m('a', { className: 'SocialHeader-link', href: app.route('social.media') }, app.translator.trans('cengizkemec-social.forum.nav.media')),
-          m('a', { className: 'SocialHeader-link', href: app.route('social.rooms') }, app.translator.trans('cengizkemec-social.forum.nav.rooms')),
+          m('a', { className: 'SocialHeader-link', href: app.route('social.explore') }, [m('i', { className: 'fas fa-compass' }), ' ', app.translator.trans('cengizkemec-social.forum.nav.explore')]),
+          m('a', { className: 'SocialHeader-link', href: app.route('social.index') }, [m('i', { className: 'fas fa-stream' }), ' ', app.translator.trans('cengizkemec-social.forum.nav.feed')]),
+          m('a', { className: 'SocialHeader-link', href: app.route('social.media') }, [m('i', { className: 'fas fa-image' }), ' ', app.translator.trans('cengizkemec-social.forum.nav.media')]),
+          m('a', { className: 'SocialHeader-link', href: app.route('social.rooms') }, [m('i', { className: 'fas fa-headset' }), ' ', app.translator.trans('cengizkemec-social.forum.nav.rooms')]),
           user
-            ? m('a', { className: 'SocialHeader-link', href: app.route('social.messages') }, app.translator.trans('cengizkemec-social.forum.nav.messages'))
+            ? m('a', { className: 'SocialHeader-link', href: app.route('social.messages') }, [m('i', { className: 'fas fa-envelope' }), ' ', app.translator.trans('cengizkemec-social.forum.nav.messages')])
             : null,
-          ...this.headerLinks(),
+          communityLinks.length
+            ? m(
+                Dropdown,
+                {
+                  className: 'SocialHeader-linksDropdown',
+                  buttonClassName: 'SocialHeader-link SocialHeader-linksToggle',
+                  label: [m('i', { className: 'fas fa-compass' }), app.translator.trans('cengizkemec-social.forum.nav.community')],
+                  accessibleToggleLabel: app.translator.trans('cengizkemec-social.forum.nav.community'),
+                },
+                communityLinks
+              )
+            : null,
         ]),
       ]),
       m(

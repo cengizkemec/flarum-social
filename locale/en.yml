@@ -20,6 +20,7 @@ cengizkemec-social:
       search_placeholder: "Search people, posts, rooms…"
       toggle_menu: "Toggle social navigation"
       forum: "Forum"
+      community: "Community"
       language: "Language"
     time:
       just_now: "just now"

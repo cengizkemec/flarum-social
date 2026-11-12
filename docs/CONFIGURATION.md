@@ -42,6 +42,8 @@ Enable `flarum/messages` to use Flarum's native inbox. Social renders the native
 
 ## Forum categories and sidebar
 
+The default navigation placement is the Flarum side menu (`nav_position=sidebar`). The extension does not add a second Social link to the Flarum header by default; add one through FoF Links if you want it there. Change this in **General -> Navigation placement** if you prefer the header, both locations, or no automatic link.
+
 The Social left menu can show Flarum's primary forum categories under **Forum**, linking to the normal tag pages. Turn this off with **Show Flarum forum categories in the Social menu** (`forum_categories_in_social`).
 
 The forum's own index sidebar can show two optional Social blocks:
