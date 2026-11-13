@@ -2,6 +2,15 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.12 - 2026-11-13
+
+- Fixed the **Add category** form in **ACP → Flarum Social → Rooms**. Pressing **Enter** now submits the form instead of doing nothing, and an empty name shows a clear validation alert.
+- Category and channel add buttons now show a loading state and cannot be submitted twice while a request is running. Successful additions show a confirmation alert.
+- New categories are now appended after the last category instead of receiving a sequential value that could place them in the middle of a reordered list (for example between sort orders 0 and 10).
+- Added a hint that a new category becomes visible in the Social menu after a room or channel is assigned to it.
+- The category icon field is now labelled, constrained in width and shown with the `fas fa-folder` placeholder, so it is no longer confused with the category name field.
+- No database changes are required.
+
 ## 1.1.11 - 2026-11-13
 
 - Added a native **Pusher** realtime driver for installations that already use `flarum/pusher`. It reuses the existing Pusher app key, secret, cluster and host, so no self-hosted realtime server is needed.

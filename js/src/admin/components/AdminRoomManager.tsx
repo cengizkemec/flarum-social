@@ -17,6 +17,8 @@ export default class AdminRoomManager {
   channelCategory = '';
   channelVisibility = 'members';
   reordering = false;
+  categorySaving = false;
+  channelSaving = false;
 
   oninit(): void {
     this.load();
@@ -51,18 +53,32 @@ export default class AdminRoomManager {
   }
 
   addCategory(): void {
-    if (!this.categoryName.trim()) return;
+    const name = this.categoryName.trim();
+
+    if (!name) {
+      app.alerts.show({ type: 'error' }, app.translator.trans('cengizkemec-social.admin.rooms.category_name_required') as string);
+      return;
+    }
+
+    if (this.categorySaving) return;
+
+    this.categorySaving = true;
+    m.redraw();
 
     adminPost('/social/admin/categories', {
-      name: this.categoryName,
-      icon: this.categoryIcon,
-      sort_order: (this.data?.categories?.length || 0) + 1,
+      name,
+      icon: this.categoryIcon.trim() || 'fas fa-folder',
     })
       .then(() => {
         this.categoryName = '';
+        app.alerts.show({ type: 'success' }, app.translator.trans('cengizkemec-social.admin.rooms.category_added', { name }) as string);
         this.load();
       })
-      .catch((error: any) => app.alerts.show({ type: 'error' }, error.message));
+      .catch((error: any) => app.alerts.show({ type: 'error' }, error.message))
+      .finally(() => {
+        this.categorySaving = false;
+        m.redraw();
+      });
   }
 
   startEditCategory(category: any): void {
@@ -82,7 +98,10 @@ export default class AdminRoomManager {
   saveCategory(category: any): void {
     const name = this.editCategoryName.trim();
 
-    if (!name) return;
+    if (!name) {
+      app.alerts.show({ type: 'error' }, app.translator.trans('cengizkemec-social.admin.rooms.category_name_required') as string);
+      return;
+    }
 
     adminPatch(`/social/admin/categories/${category.id}`, {
       name,
@@ -101,19 +120,34 @@ export default class AdminRoomManager {
   }
 
   addChannel(): void {
-    if (!this.channelName.trim()) return;
+    const name = this.channelName.trim();
+
+    if (!name) {
+      app.alerts.show({ type: 'error' }, app.translator.trans('cengizkemec-social.admin.rooms.channel_name_required') as string);
+      return;
+    }
+
+    if (this.channelSaving) return;
+
+    this.channelSaving = true;
+    m.redraw();
 
     adminPost('/social/admin/channels', {
-      name: this.channelName,
+      name,
       room_id: this.channelRoom || null,
       category_id: this.channelCategory || null,
       visibility: this.channelVisibility,
     })
       .then(() => {
         this.channelName = '';
+        app.alerts.show({ type: 'success' }, app.translator.trans('cengizkemec-social.admin.rooms.channel_added', { name }) as string);
         this.load();
       })
-      .catch((error: any) => app.alerts.show({ type: 'error' }, error.message));
+      .catch((error: any) => app.alerts.show({ type: 'error' }, error.message))
+      .finally(() => {
+        this.channelSaving = false;
+        m.redraw();
+      });
   }
 
   removeChannel(channel: any): void {
@@ -194,11 +228,33 @@ export default class AdminRoomManager {
 
       m('section', { className: 'SocialAdminPanel' }, [
         m('h3', {}, app.translator.trans('cengizkemec-social.admin.rooms.categories')),
-        m('div', { className: 'SocialAdminInlineForm' }, [
-          m('input', { className: 'FormControl', placeholder: app.translator.trans('cengizkemec-social.admin.rooms.category_name'), value: this.categoryName, oninput: (event: Event) => (this.categoryName = (event.target as HTMLInputElement).value) }),
-          m('input', { className: 'FormControl', value: this.categoryIcon, oninput: (event: Event) => (this.categoryIcon = (event.target as HTMLInputElement).value) }),
-          m(Button, { className: 'Button', onclick: () => this.addCategory() }, app.translator.trans('cengizkemec-social.admin.rooms.add_category')),
+        m('form', {
+          className: 'SocialAdminInlineForm',
+          onsubmit: (event: Event) => {
+            event.preventDefault();
+            this.addCategory();
+          },
+        }, [
+          m('input', {
+            className: 'FormControl',
+            name: 'category_name',
+            placeholder: app.translator.trans('cengizkemec-social.admin.rooms.category_name'),
+            'aria-label': app.translator.trans('cengizkemec-social.admin.rooms.category_name'),
+            value: this.categoryName,
+            oninput: (event: Event) => (this.categoryName = (event.target as HTMLInputElement).value),
+          }),
+          m('input', {
+            className: 'FormControl SocialAdminInlineForm-icon',
+            name: 'category_icon',
+            placeholder: 'fas fa-folder',
+            'aria-label': app.translator.trans('cengizkemec-social.admin.rooms.icon'),
+            title: app.translator.trans('cengizkemec-social.admin.rooms.icon'),
+            value: this.categoryIcon,
+            oninput: (event: Event) => (this.categoryIcon = (event.target as HTMLInputElement).value),
+          }),
+          m(Button, { className: 'Button', type: 'submit', loading: this.categorySaving, disabled: this.categorySaving }, app.translator.trans('cengizkemec-social.admin.rooms.add_category')),
         ]),
+        m('p', { className: 'SocialAdminHint' }, app.translator.trans('cengizkemec-social.admin.rooms.empty_category_hint')),
         m('div', { className: 'SocialAdminList' }, categories.map((category: any, index: number) =>
           this.editingCategoryId === Number(category.id)
             ? m('div', { className: 'SocialAdminList-row SocialAdminList-row--editing' }, [
@@ -297,12 +353,25 @@ export default class AdminRoomManager {
 
       m('section', { className: 'SocialAdminPanel' }, [
         m('h3', {}, app.translator.trans('cengizkemec-social.admin.rooms.channels')),
-        m('div', { className: 'SocialAdminInlineForm' }, [
-          m('input', { className: 'FormControl', placeholder: app.translator.trans('cengizkemec-social.admin.rooms.channel_name'), value: this.channelName, oninput: (event: Event) => (this.channelName = (event.target as HTMLInputElement).value) }),
+        m('form', {
+          className: 'SocialAdminInlineForm',
+          onsubmit: (event: Event) => {
+            event.preventDefault();
+            this.addChannel();
+          },
+        }, [
+          m('input', {
+            className: 'FormControl',
+            name: 'channel_name',
+            placeholder: app.translator.trans('cengizkemec-social.admin.rooms.channel_name'),
+            'aria-label': app.translator.trans('cengizkemec-social.admin.rooms.channel_name'),
+            value: this.channelName,
+            oninput: (event: Event) => (this.channelName = (event.target as HTMLInputElement).value),
+          }),
           m('select', { className: 'FormControl', value: this.channelCategory, onchange: (event: Event) => (this.channelCategory = (event.target as HTMLSelectElement).value) }, [m('option', { value: '' }, app.translator.trans('cengizkemec-social.admin.rooms.no_category')), categories.map((category: any) => m('option', { value: category.id }, category.name))]),
           m('select', { className: 'FormControl', value: this.channelRoom, onchange: (event: Event) => (this.channelRoom = (event.target as HTMLSelectElement).value) }, [m('option', { value: '' }, app.translator.trans('cengizkemec-social.admin.rooms.standalone')), rooms.map((room: any) => m('option', { value: room.id }, room.name))]),
           m('select', { className: 'FormControl', value: this.channelVisibility, onchange: (event: Event) => (this.channelVisibility = (event.target as HTMLSelectElement).value) }, ['public', 'members', 'staff'].map((value) => m('option', { value, selected: this.channelVisibility === value }, app.translator.trans(`cengizkemec-social.admin.rooms.visibility_options.${value}`)))),
-          m(Button, { className: 'Button', onclick: () => this.addChannel() }, app.translator.trans('cengizkemec-social.admin.rooms.add_channel')),
+          m(Button, { className: 'Button', type: 'submit', loading: this.channelSaving, disabled: this.channelSaving }, app.translator.trans('cengizkemec-social.admin.rooms.add_channel')),
         ]),
         m('div', { className: 'SocialAdminList' }, channels.map((channel: any) =>
           m('div', { className: 'SocialAdminList-row' }, [

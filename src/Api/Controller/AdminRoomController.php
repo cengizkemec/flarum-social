@@ -354,7 +354,9 @@ class AdminRoomController extends AbstractSocialController
         $category->name = $name;
         $category->icon = $this->cleanString($body['icon'] ?? 'fas fa-folder', 60);
         $category->description = $this->cleanString($body['description'] ?? '', 500) ?: null;
-        $category->sort_order = (int) ($body['sort_order'] ?? 0);
+        $category->sort_order = array_key_exists('sort_order', $body)
+            ? (int) $body['sort_order']
+            : ((int) RoomCategory::query()->max('sort_order')) + 10;
         $category->created_at = \Illuminate\Support\now();
         $category->updated_at = \Illuminate\Support\now();
         $category->save();
