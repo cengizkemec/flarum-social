@@ -2,6 +2,15 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.13 - 2026-11-13
+
+- **Pusher connection sharing.** When `flarum/pusher` is enabled and uses the same Pusher app, Social now reuses Flarum's existing Pusher socket through `app.pusher` instead of opening a second WebSocket connection. This halves the number of Pusher connections per user while Social is open.
+- Social's private channels still use Social's own authorization endpoint (`POST /api/social/realtime/auth`) and permission checks. Only `private-social-*` authorizations are routed to Social; Flarum's `private-user*` channels keep using `POST /api/pusher/auth`.
+- When Social falls back to its own Pusher socket (for example when the Flarum Pusher extension is unavailable or uses a different app), the socket is now closed after 15 seconds of inactivity and recreated on demand. This frees idle connections during normal forum browsing.
+- Logging out no longer disconnects Flarum's shared Pusher socket; only Social's channels are unsubscribed.
+- Verified live with a single WebSocket connection: `public`, `private-user*` and `private-social-channel-*` channels shared one socket, typing events were delivered, and leaving Social removed only the Social channel.
+- No database changes are required.
+
 ## 1.1.12 - 2026-11-13
 
 - Fixed the **Add category** form in **ACP → Flarum Social → Rooms**. Pressing **Enter** now submits the form instead of doing nothing, and an empty name shows a clear validation alert.
