@@ -137,6 +137,7 @@ export const SETTING_GROUPS: Record<string, SettingItem[]> = {
     { key: 'dm_rate_limit', type: 'number', min: 2, max: 200 },
     { key: 'dm_allowed_groups', type: 'text' },
     { key: 'realtime_enabled' },
+    { key: 'realtime_driver', type: 'select', options: { centrifugo: 'centrifugo', pusher: 'pusher' } },
     { key: 'centrifugo_url', type: 'text' },
     { key: 'centrifugo_api_url', type: 'text' },
     { key: 'centrifugo_api_key', type: 'text' },

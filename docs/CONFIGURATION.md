@@ -43,6 +43,15 @@ To verify locally:
 
 Browsers block screen capture on insecure origins. Use `https://` in production; `http://localhost` is accepted for local testing.
 
+## Realtime
+
+Social supports two realtime drivers in **ACP → Flarum Social → Messages and realtime**:
+
+- **Pusher** reuses the existing `flarum/pusher` app key, secret, cluster and optional host. This is the recommended option when Flarum's Pusher extension is already configured, because it needs no self-hosted realtime server or tunnel.
+- **Centrifugo** uses a self-hosted Centrifugo server. Fill the WebSocket URL, HTTP API URL, API key and token HMAC secret.
+
+With Pusher, Social subscribes to private channels such as `private-social-room-1` and authorizes them through `POST /api/social/realtime/auth`. The same Social post, room, channel and direct-message permissions are checked before the channel is signed, so private content is not exposed through public channels. If realtime is disabled or unavailable, chat falls back to periodic refresh after the configured interval.
+
 ## Messages
 
 Enable `flarum/messages` to use Flarum's native inbox. Social renders the native dialogs and message stream inside its own layout, using Flarum's dialog models, permissions, notifications and realtime delivery. When the official extension is disabled, the Social DM fallback is used instead.

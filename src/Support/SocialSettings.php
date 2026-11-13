@@ -137,6 +137,7 @@ class SocialSettings
         'dm_allowed_groups' => '',
 
         'realtime_enabled' => false,
+        'realtime_driver' => 'centrifugo',
         'centrifugo_url' => '',
         'centrifugo_api_url' => '',
         'centrifugo_api_key' => '',
@@ -204,6 +205,14 @@ class SocialSettings
      */
     public function publicConfig(): array
     {
+        $realtimeDriver = $this->get('realtime_driver') ?: 'centrifugo';
+        $pusherReady = $this->settings->get('flarum-pusher.app_id')
+            && $this->settings->get('flarum-pusher.app_key')
+            && $this->settings->get('flarum-pusher.app_secret');
+        $centrifugoReady = $this->get('centrifugo_url') !== '' && $this->get('centrifugo_token_hmac_secret') !== '';
+        $realtimeEnabled = $this->bool('realtime_enabled')
+            && ($realtimeDriver === 'pusher' ? $pusherReady : $centrifugoReady);
+
         return [
             'enabled' => $this->bool('enabled'),
             'guestAccess' => $this->bool('guest_access'),
@@ -276,8 +285,12 @@ class SocialSettings
                 ],
             ],
             'realtime' => [
-                'enabled' => $this->bool('realtime_enabled') && $this->get('centrifugo_url') !== '',
-                'url' => $this->get('centrifugo_url'),
+                'enabled' => $realtimeEnabled,
+                'driver' => $realtimeDriver,
+                'url' => $realtimeDriver === 'centrifugo' ? $this->get('centrifugo_url') : '',
+                'pusherKey' => $this->settings->get('flarum-pusher.app_key') ?: '',
+                'pusherCluster' => $this->settings->get('flarum-pusher.app_cluster') ?: '',
+                'pusherHost' => $this->settings->get('flarum-pusher.server_hostname') ?: '',
                 'fallbackSeconds' => max(5, $this->int('realtime_fallback_seconds')),
             ],
             'limits' => [

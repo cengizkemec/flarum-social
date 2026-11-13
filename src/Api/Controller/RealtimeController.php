@@ -25,6 +25,10 @@ class RealtimeController extends AbstractSocialController
 
     protected function dispatch(ServerRequestInterface $request): ResponseInterface
     {
+        if ($this->routeName($request) === 'social.realtime.auth') {
+            return $this->authorize($request);
+        }
+
         $actor = $this->actor($request);
         $actor->assertRegistered();
 
@@ -42,7 +46,56 @@ class RealtimeController extends AbstractSocialController
             return $this->forbidden('realtime_channel_forbidden');
         }
 
+        if ($this->realtime->driver() === 'pusher') {
+            return $this->json(['data' => [
+                'driver' => 'pusher',
+                'key' => $this->settings->get('flarum-pusher.app_key'),
+                'cluster' => $this->settings->get('flarum-pusher.app_cluster'),
+                'host' => $this->settings->get('flarum-pusher.server_hostname'),
+                'channel' => $this->realtime->mapChannel($channel),
+            ]]);
+        }
+
         return $this->json(['data' => $this->realtime->tokens($actor, $channel)]);
+    }
+
+    protected function authorize(ServerRequestInterface $request): ResponseInterface
+    {
+        $actor = $this->actor($request);
+        $actor->assertRegistered();
+
+        if (! $this->realtime->enabled() || $this->realtime->driver() !== 'pusher') {
+            return $this->forbidden('realtime_channel_forbidden');
+        }
+
+        $body = $request->getParsedBody();
+
+        if (! is_array($body) || empty($body)) {
+            $body = [];
+            parse_str((string) $request->getBody(), $body);
+        }
+
+        $socketId = (string) ($body['socket_id'] ?? '');
+        $mappedChannel = (string) ($body['channel_name'] ?? '');
+        $channel = $this->realtime->logicalChannel($mappedChannel);
+
+        if ($socketId === '' || $channel === null || ! $this->allowed($channel, $request)) {
+            return $this->forbidden('realtime_channel_forbidden');
+        }
+
+        $auth = $this->realtime->pusherAuth($socketId, $mappedChannel);
+
+        if (! $auth) {
+            return $this->json([
+                'errors' => [[
+                    'status' => '503',
+                    'code' => 'pusher_auth_failed',
+                    'detail' => $this->translator->trans('cengizkemec-social.api.errors.realtime_disabled'),
+                ]],
+            ], 503);
+        }
+
+        return $this->json($auth);
     }
 
     protected function allowed(string $channel, ServerRequestInterface $request): bool

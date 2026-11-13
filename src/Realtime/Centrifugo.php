@@ -17,11 +17,45 @@ class Centrifugo
     ) {
     }
 
+    public function driver(): string
+    {
+        $driver = (string) $this->settings->get('realtime_driver');
+
+        return $driver === 'pusher' ? 'pusher' : 'centrifugo';
+    }
+
     public function enabled(): bool
     {
-        return $this->settings->bool('realtime_enabled')
-            && $this->settings->get('centrifugo_url') !== ''
+        if (! $this->settings->bool('realtime_enabled')) {
+            return false;
+        }
+
+        if ($this->driver() === 'pusher') {
+            return $this->settings->get('flarum-pusher.app_id') !== ''
+                && $this->settings->get('flarum-pusher.app_key') !== ''
+                && $this->settings->get('flarum-pusher.app_secret') !== '';
+        }
+
+        return $this->settings->get('centrifugo_url') !== ''
             && $this->settings->get('centrifugo_token_hmac_secret') !== '';
+    }
+
+    public function mapChannel(string $channel): string
+    {
+        return 'private-'.str_replace(':', '-', $channel);
+    }
+
+    public function logicalChannel(string $mapped): ?string
+    {
+        if (preg_match('/^private-social-(feed|rooms|stories)$/', $mapped, $matches)) {
+            return 'social:'.$matches[1];
+        }
+
+        if (preg_match('/^private-social-(post|room|channel|dm)-(\d+)$/', $mapped, $matches)) {
+            return 'social:'.$matches[1].':'.$matches[2];
+        }
+
+        return null;
     }
 
     public function channelForRoom(int $roomId): string
@@ -74,7 +108,15 @@ class Centrifugo
 
     public function publish(string $channel, array $payload): bool
     {
-        if (! $this->enabled() || $this->settings->get('centrifugo_api_url') === '' || $this->settings->get('centrifugo_api_key') === '') {
+        if (! $this->enabled()) {
+            return false;
+        }
+
+        if ($this->driver() === 'pusher') {
+            return $this->publishPusher($channel, $payload);
+        }
+
+        if ($this->settings->get('centrifugo_api_url') === '' || $this->settings->get('centrifugo_api_key') === '') {
             return false;
         }
 
@@ -96,6 +138,57 @@ class Centrifugo
             $this->logger->warning('flarum-social: Centrifugo publish failed', ['message' => $e->getMessage()]);
 
             return false;
+        }
+    }
+
+    protected function pusher(): ?object
+    {
+        if (! class_exists(\Pusher\Pusher::class)) {
+            return null;
+        }
+
+        try {
+            return app(\Pusher\Pusher::class);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function publishPusher(string $channel, array $payload): bool
+    {
+        $pusher = $this->pusher();
+
+        if (! $pusher) {
+            return false;
+        }
+
+        try {
+            $pusher->trigger($this->mapChannel($channel), 'social', $payload);
+
+            return true;
+        } catch (\Throwable $e) {
+            $this->logger->warning('flarum-social: Pusher publish failed', ['message' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
+    public function pusherAuth(string $socketId, string $mappedChannel): ?array
+    {
+        $pusher = $this->pusher();
+
+        if (! $pusher) {
+            return null;
+        }
+
+        try {
+            $payload = json_decode((string) $pusher->socket_auth($mappedChannel, $socketId), true);
+
+            return is_array($payload) ? $payload : null;
+        } catch (\Throwable $e) {
+            $this->logger->warning('flarum-social: Pusher auth failed', ['message' => $e->getMessage()]);
+
+            return null;
         }
     }
 }

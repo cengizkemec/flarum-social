@@ -534,7 +534,7 @@ cengizkemec-social:
     notes:
       localization: "Sosyal, Flarum'un yerleşik yerelleştirmesini kullanır. Forum dil seçici, forum ve Sosyal arasında paketlenmiş Türkçe ve İngilizce çevirileri değiştirir."
       s3: "S3 modu league/flysystem-aws-s3-v3 ve aws/aws-sdk-php gerektirir. Medya API üzerinden erişim denetimli kalır; genel URL ayarı yalnızca isteğe bağlı CDN içindir."
-      realtime: "Gerçek zamanlı iletişim isteğe bağlıdır. Centrifugo yoksa sohbet düzenli yenilemeye döner. Gerçek zamanlı servisi TLS arkasında çalıştır ve API anahtarı ile HMAC gizli anahtarını sunucuda tut."
+      realtime: "Gerçek zamanlı iletişim isteğe bağlıdır. Mevcut flarum/pusher uygulamasını kullanmak için Pusher'ı, kendi sunucusuyla Centrifugo'yu seç. İkisi de yoksa sohbet düzenli yenilemeye döner."
     options:
       nav_position:
         both: "Başlık ve kenar çubuğu"
@@ -547,6 +547,9 @@ cengizkemec-social:
       user_room_owner_disconnect:
         keep: "Odayı açık tut"
         close: "Odayı kapat"
+      realtime_driver:
+        centrifuge: "Centrifugo"
+        pusher: "Pusher (flarum/pusher)"
     overview:
       users: "Kayıtlı kullanıcılar"
       active_users: "30 günde aktif"
@@ -755,7 +758,9 @@ cengizkemec-social:
       dm_retention_days: "Özel mesaj saklama (gün, 0 = koru)"
       dm_rate_limit: "Dakikada özel mesaj"
       dm_allowed_groups: "Özel mesaj kullanabilecek gruplar (kimlikler)"
-      realtime_enabled: "Centrifugo gerçek zamanlıyı etkinleştir"
+      realtime_enabled: "Gerçek zamanlıyı etkinleştir"
+      realtime_driver: "Gerçek zamanlı sürücüsü"
+      realtime_driver_help: "Mevcut flarum/pusher uygulamasını kullanmak için Pusher'ı, aşağıdaki alanlarla Centrifugo'yu seç."
       centrifugo_url: "Centrifugo WebSocket URL'si"
       centrifugo_api_url: "Centrifugo HTTP API URL'si"
       centrifugo_api_key: "Centrifugo API anahtarı"

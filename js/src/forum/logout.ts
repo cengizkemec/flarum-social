@@ -1,5 +1,6 @@
 import app from 'flarum/forum/app';
 import SocialState from './SocialState';
+import { disconnectRealtime } from './realtime';
 
 /**
  * Log out without a full page reload. The native /logout endpoint destroys the
@@ -27,6 +28,7 @@ export function logout(): void {
       }
 
       app.session.user = null;
+      disconnectRealtime();
 
       try {
         await SocialState.syncSession();

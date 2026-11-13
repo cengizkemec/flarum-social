@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "centrifuge": "^5.8.0",
-    "livekit-client": "^2.23.0"
+    "livekit-client": "^2.23.0",
+    "pusher-js": "^8.6.0"
   },
   "devDependencies": {
     "flarum-tsconfig": "^2.0.0",

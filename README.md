@@ -67,7 +67,7 @@ More screenshots are in [docs/screenshots](docs/screenshots). Release 1.1.5 note
 - MySQL/MariaDB, PostgreSQL or SQLite
 - Node.js only when rebuilding the bundled JavaScript
 - Optional: a LiveKit server for voice rooms
-- Optional: Centrifugo for realtime chat
+- Optional: Pusher via `flarum/pusher`, or Centrifugo, for realtime chat
 - Optional: S3-compatible storage for media
 - Optional: reuse `fof/upload` adapters and its media library for Social uploads
 

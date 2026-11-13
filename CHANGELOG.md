@@ -2,6 +2,14 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.11 - 2026-11-13
+
+- Added a native **Pusher** realtime driver for installations that already use `flarum/pusher`. It reuses the existing Pusher app key, secret, cluster and host, so no self-hosted realtime server is needed.
+- Added **Realtime driver** in the ACP with two choices: **Pusher** and **Centrifugo**. The Pusher driver is recommended when `flarum/pusher` is configured; Centrifugo remains available as a fallback.
+- Pusher channels are private (`private-social-*`) and are authorized through `POST /api/social/realtime/auth`. The auth endpoint reuses Social's existing post, room, channel and DM permissions, so realtime does not expose private content through public channels.
+- Verified end-to-end on `warthunder.tr`: Pusher subscription, private-channel auth and server publication were all successful. The live site now uses Pusher and the Centrifugo quick-tunnel service has been stopped and removed from cron.
+- No database changes are required.
+
 ## 1.1.10 - 2026-11-13
 
 - Hid Flarum's own `acpl/mobile-tab` bottom bar while a Social page is active. On small screens it was covering Social's own mobile navigation, so members saw Flarum's Home/Discussions/Login tabs instead of Feed/Explore/Rooms/Messages/Profile.

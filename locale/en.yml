@@ -534,7 +534,7 @@ cengizkemec-social:
     notes:
       localization: "Social uses Flarum's native localization. The forum language selector switches both the forum and Social between the bundled Turkish and English translations."
       s3: "S3 mode needs league/flysystem-aws-s3-v3 and aws/aws-sdk-php. Media stays access-controlled through the API; the public URL setting is optional for CDN fronting only."
-      realtime: "Realtime is optional. Without Centrifugo, chat falls back to periodic refresh. Run the realtime service behind TLS and keep the API key and HMAC secret on the server."
+      realtime: "Realtime is optional. Choose Pusher to reuse the existing flarum/pusher app, or Centrifugo with its own server. Without either, chat falls back to periodic refresh."
     options:
       nav_position:
         both: "Header and sidebar"
@@ -547,6 +547,9 @@ cengizkemec-social:
       user_room_owner_disconnect:
         keep: "Keep room open"
         close: "Close room"
+      realtime_driver:
+        centrifuge: "Centrifugo"
+        pusher: "Pusher (flarum/pusher)"
     overview:
       users: "Registered users"
       active_users: "Active in 30 days"
@@ -755,7 +758,9 @@ cengizkemec-social:
       dm_retention_days: "Direct message retention (days, 0 = keep)"
       dm_rate_limit: "Direct messages per minute"
       dm_allowed_groups: "Groups allowed to use direct messages (IDs)"
-      realtime_enabled: "Enable Centrifugo realtime"
+      realtime_enabled: "Enable realtime"
+      realtime_driver: "Realtime driver"
+      realtime_driver_help: "Use Pusher to reuse the existing flarum/pusher app, or Centrifugo with the fields below."
       centrifugo_url: "Centrifugo WebSocket URL"
       centrifugo_api_url: "Centrifugo HTTP API URL"
       centrifugo_api_key: "Centrifugo API key"
