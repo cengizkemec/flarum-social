@@ -9,18 +9,23 @@ use Flarum\Extend\Conditional;
 
 $settings = new Extend\Settings();
 
+// Flarum's admin switches can store an empty string when a setting is turned
+// off. Treat only a genuinely missing value as "use the default"; an empty
+// saved value must mean false, otherwise disabled widgets keep rendering.
+$toForumBool = fn ($value) => $value === null ? true : filter_var($value, FILTER_VALIDATE_BOOLEAN);
+
 foreach (SocialSettings::DEFAULTS as $key => $value) {
     $settings->default(SocialSettings::PREFIX.$key, $value);
 }
 
 $settings
-    ->serializeToForum('socialEnabled', SocialSettings::PREFIX.'enabled', fn ($value) => $value === null || $value === '' ? true : filter_var($value, FILTER_VALIDATE_BOOLEAN))
-    ->serializeToForum('socialNavigation', SocialSettings::PREFIX.'navigation', fn ($value) => $value === null || $value === '' ? true : filter_var($value, FILTER_VALIDATE_BOOLEAN))
+    ->serializeToForum('socialEnabled', SocialSettings::PREFIX.'enabled', $toForumBool)
+    ->serializeToForum('socialNavigation', SocialSettings::PREFIX.'navigation', $toForumBool)
     ->serializeToForum('socialNavPosition', SocialSettings::PREFIX.'nav_position')
-    ->serializeToForum('socialForumVoiceWidget', SocialSettings::PREFIX.'forum_voice_widget', fn ($value) => $value === null || $value === '' ? true : filter_var($value, FILTER_VALIDATE_BOOLEAN))
-    ->serializeToForum('socialForumMenu', SocialSettings::PREFIX.'forum_social_menu', fn ($value) => $value === null || $value === '' ? true : filter_var($value, FILTER_VALIDATE_BOOLEAN))
-    ->serializeToForum('socialForumCategories', SocialSettings::PREFIX.'forum_categories_in_social', fn ($value) => $value === null || $value === '' ? true : filter_var($value, FILTER_VALIDATE_BOOLEAN))
-    ->serializeToForum('socialVoiceEnabled', SocialSettings::PREFIX.'enable_voice', fn ($value) => $value === null || $value === '' ? true : filter_var($value, FILTER_VALIDATE_BOOLEAN))
+    ->serializeToForum('socialForumVoiceWidget', SocialSettings::PREFIX.'forum_voice_widget', $toForumBool)
+    ->serializeToForum('socialForumMenu', SocialSettings::PREFIX.'forum_social_menu', $toForumBool)
+    ->serializeToForum('socialForumCategories', SocialSettings::PREFIX.'forum_categories_in_social', $toForumBool)
+    ->serializeToForum('socialVoiceEnabled', SocialSettings::PREFIX.'enable_voice', $toForumBool)
     ->serializeToForum('socialAccentColor', SocialSettings::PREFIX.'accent_color')
     ->serializeToForum('socialCustomCss', SocialSettings::PREFIX.'custom_css');
 

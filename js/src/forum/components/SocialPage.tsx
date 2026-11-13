@@ -70,11 +70,11 @@ export default class SocialPage extends Page {
         this.onSocialReady();
         app.setTitle(this.pageTitle());
         app.setTitleCount(0);
-        m.redraw();
+        m.redraw.sync();
       })
       .catch((error: any) => {
         this.error = error.message;
-        m.redraw();
+        m.redraw.sync();
       });
   }
 

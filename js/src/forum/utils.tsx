@@ -138,6 +138,17 @@ export function roomUrl(room: any): string {
   return app.route('social.room', { slug: room?.slug || room?.id });
 }
 
+export function channelUrl(channel: any): string {
+  return app.route('social.channel', { id: channel?.slug || channel?.id });
+}
+
+export function roomCapacityLabel(room: any): string {
+  const count = Number(room?.participantCount) || 0;
+  const capacity = Number(room?.capacity) || 0;
+
+  return capacity > 0 ? `${count} / ${capacity}` : `${count} / ∞`;
+}
+
 export function handleApiError(error: any): void {
   app.alerts.show({ type: 'error' }, error?.message || (app.translator.trans('cengizkemec-social.forum.errors.generic') as string));
 }

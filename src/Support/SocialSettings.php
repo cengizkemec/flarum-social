@@ -178,7 +178,15 @@ class SocialSettings
 
     public function bool(string $key): bool
     {
-        return filter_var($this->get($key), FILTER_VALIDATE_BOOLEAN);
+        $value = $this->settings->get(self::PREFIX.$key);
+
+        // A disabled Flarum switch is stored as an empty string, not "0".
+        // Only a missing row should fall back to the registered default.
+        if ($value === null) {
+            $value = self::DEFAULTS[$key] ?? false;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     public function int(string $key): int

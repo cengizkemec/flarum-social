@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import { openLoginModal } from '../authModals';
 import SocialState from '../SocialState';
 import voiceSession from '../voiceSession';
-import { Avatar, promptLogin, roomUrl } from '../utils';
+import { Avatar, channelUrl, promptLogin, roomCapacityLabel, roomUrl } from '../utils';
 
 export default class SocialNav {
   forumTags: any[] = [];
@@ -113,9 +113,7 @@ export default class SocialNav {
             ? m(
                 'span',
                 { className: 'SocialNav-count', title: app.translator.trans('cengizkemec-social.forum.rooms.participants') },
-                room.type === 'permanent' && room.capacity
-                  ? `${room.participantCount ?? 0}/${room.capacity}`
-                  : room.participantCount ?? 0
+                roomCapacityLabel(room)
               )
             : null,
         ]
@@ -154,15 +152,19 @@ export default class SocialNav {
       ]);
     };
 
-    const channelLink = (channel: any) => m(
-      'a',
-      {
-        href: app.route('social.channel', { id: channel.id }),
-        className: 'SocialNav-channel' + (current === app.route('social.channel', { id: channel.id }) ? ' is-active' : ''),
-        onclick: close,
-      },
-      [m('i', { className: 'fas fa-hashtag' }), m('span', {}, channel.name)]
-    );
+    const channelLink = (channel: any) => {
+      const href = channelUrl(channel);
+
+      return m(
+        'a',
+        {
+          href,
+          className: 'SocialNav-channel' + (current === href ? ' is-active' : ''),
+          onclick: close,
+        },
+        [m('i', { className: channel.icon || 'fas fa-hashtag' }), m('span', {}, channel.name)]
+      );
+    };
 
     const categoryTree = (() => {
       const allowedCategoryIds = (state.userRoomCategoryIds || []).map((id: any) => Number(id));

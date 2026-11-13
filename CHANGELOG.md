@@ -2,6 +2,18 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.17 - 2026-11-13
+
+- Added **URL slugs**, **Font Awesome icons**, creation timestamps, group permissions and full edit support for text channels in the ACP. Existing channels receive a generated slug during migration.
+- Text channels can now be standalone or attached to a room, moved between rooms, locked, ordered and restricted to selected Flarum groups. Room channels also appear in the channel manager instead of being hidden under the room.
+- Text-channel URLs now use the channel slug (`/social/channels/your-slug`); legacy numeric URLs continue to work.
+- Rooms and text channels can now be **unlimited** (`0` capacity / no participant limit). The ACP shows an **Unlimited capacity** checkbox and the forum shows `∞` instead of a fixed limit.
+- Room and channel permissions now use a clear group checklist instead of comma-separated group IDs.
+- Fixed forum-sidebar widgets still rendering after being turned off. Flarum saves a disabled switch as an empty string, which was incorrectly treated as “use the default” (enabled).
+- Fixed multi-channel rooms only showing the first text channel; rooms with several channels now show a channel switcher.
+- Added Turkish and English translations for all new fields.
+- Database change: `social_text_channels` gains `slug`, `icon` and `allowed_groups`.
+
 ## 1.1.16 - 2026-11-13
 
 - Removed the temporary **WTTRDesktop** bridge from Flarum Social. The War Thunder Türkiye desktop application is a separate project and does not modify this extension.

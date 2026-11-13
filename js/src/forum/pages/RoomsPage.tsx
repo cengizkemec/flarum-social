@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import SocialPage from '../components/SocialPage';
 import SocialState from '../SocialState';
 import { get } from '../../common/api';
-import { handleApiError, promptLogin, roomUrl } from '../utils';
+import { channelUrl, handleApiError, promptLogin, roomCapacityLabel, roomUrl } from '../utils';
 import RoomCreateModal from '../components/RoomCreateModal';
 
 export default class RoomsPage extends SocialPage {
@@ -83,13 +83,13 @@ export default class RoomsPage extends SocialPage {
           room.hasPassword ? m('span', { className: 'SocialTag SocialTag--small' }, m('i', { className: 'fas fa-lock' })) : null,
         ]),
       ]),
-      m('span', { className: 'SocialRoomCard-count' }, [m('i', { className: 'fas fa-user-group' }), ' ', room.participantCount ?? 0, ' / ', room.capacity]),
+      m('span', { className: 'SocialRoomCard-count' }, [m('i', { className: 'fas fa-user-group' }), ' ', roomCapacityLabel(room)]),
     ]);
   }
 
   channelCard(channel: any): any {
-    return m('a', { className: 'SocialRoomCard SocialRoomCard--text', href: app.route('social.channel', { id: channel.id }) }, [
-      m('span', { className: 'SocialRoomCard-icon' }, m('i', { className: 'fas fa-hashtag' })),
+    return m('a', { className: 'SocialRoomCard SocialRoomCard--text', href: channelUrl(channel) }, [
+      m('span', { className: 'SocialRoomCard-icon' }, m('i', { className: channel.icon || 'fas fa-hashtag' })),
       m('span', { className: 'SocialRoomCard-info' }, [
         m('strong', {}, channel.name),
         m('small', {}, channel.description || ''),

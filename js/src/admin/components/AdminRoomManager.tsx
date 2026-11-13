@@ -2,6 +2,7 @@ import app from 'flarum/admin/app';
 import Button from 'flarum/common/components/Button';
 import { adminDelete, adminGet, adminPatch, adminPost } from '../adminApi';
 import AdminRoomModal from './AdminRoomModal';
+import AdminChannelModal from './AdminChannelModal';
 
 export default class AdminRoomManager {
   data: any = null;
@@ -13,6 +14,8 @@ export default class AdminRoomManager {
   editCategoryName = '';
   editCategoryIcon = 'fas fa-folder';
   channelName = '';
+  channelSlug = '';
+  channelIcon = 'fas fa-hashtag';
   channelRoom = '';
   channelCategory = '';
   channelVisibility = 'members';
@@ -42,7 +45,18 @@ export default class AdminRoomManager {
       room,
       preset,
       categories: this.data?.categories || [],
+      groups: this.data?.groups || [],
       limits: this.data?.limits || {},
+      onupdated: () => this.load(),
+    });
+  }
+
+  openChannel(channel: any = null): void {
+    app.modal.show(AdminChannelModal, {
+      channel,
+      categories: this.data?.categories || [],
+      rooms: this.data?.rooms || [],
+      groups: this.data?.groups || [],
       onupdated: () => this.load(),
     });
   }
@@ -134,12 +148,16 @@ export default class AdminRoomManager {
 
     adminPost('/social/admin/channels', {
       name,
+      slug: this.channelSlug.trim(),
+      icon: this.channelIcon.trim() || 'fas fa-hashtag',
       room_id: this.channelRoom || null,
       category_id: this.channelCategory || null,
       visibility: this.channelVisibility,
     })
       .then(() => {
         this.channelName = '';
+        this.channelSlug = '';
+        this.channelIcon = 'fas fa-hashtag';
         app.alerts.show({ type: 'success' }, app.translator.trans('cengizkemec-social.admin.rooms.channel_added', { name }) as string);
         this.load();
       })
@@ -206,6 +224,16 @@ export default class AdminRoomManager {
       });
   }
 
+  formatTimestamp(value: string | null | undefined): string {
+    if (!value) return '';
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return '';
+
+    return date.toLocaleString((app.data as any)?.locale || undefined);
+  }
+
   view(): any {
     if (this.loading) return m('div', { className: 'SocialAdminLoading' }, m('i', { className: 'fas fa-spinner fa-spin' }));
 
@@ -215,7 +243,7 @@ export default class AdminRoomManager {
 
     const categories = this.data?.categories || [];
     const rooms = this.data?.rooms || [];
-    const channels = this.data?.channels || [];
+    const channels = this.data?.allChannels || this.data?.channels || [];
 
     return m('div', { className: 'SocialAdminRooms' }, [
       m('div', { className: 'SocialAdminSectionHead' }, [
@@ -327,7 +355,7 @@ export default class AdminRoomManager {
               ]),
               m('td', {}, room.categoryName || '—'),
               m('td', {}, app.translator.trans(`cengizkemec-social.admin.rooms.visibility_options.${room.visibility}`)),
-              m('td', {}, room.capacity),
+              m('td', {}, Number(room.capacity) > 0 ? room.capacity : app.translator.trans('cengizkemec-social.admin.rooms.unlimited')),
               m('td', {}, room.participantCount),
               m('td', {}, app.translator.trans(`cengizkemec-social.admin.rooms.types.${room.type}`)),
               m('td', { className: 'SocialAdminTable-actions' }, [
@@ -368,6 +396,24 @@ export default class AdminRoomManager {
             value: this.channelName,
             oninput: (event: Event) => (this.channelName = (event.target as HTMLInputElement).value),
           }),
+          m('input', {
+            className: 'FormControl SocialAdminInlineForm-icon',
+            name: 'channel_slug',
+            placeholder: app.translator.trans('cengizkemec-social.admin.rooms.channel_slug_auto'),
+            'aria-label': app.translator.trans('cengizkemec-social.admin.rooms.slug'),
+            title: app.translator.trans('cengizkemec-social.admin.rooms.slug'),
+            value: this.channelSlug,
+            oninput: (event: Event) => (this.channelSlug = (event.target as HTMLInputElement).value),
+          }),
+          m('input', {
+            className: 'FormControl SocialAdminInlineForm-icon',
+            name: 'channel_icon',
+            placeholder: 'fas fa-hashtag',
+            'aria-label': app.translator.trans('cengizkemec-social.admin.rooms.icon'),
+            title: app.translator.trans('cengizkemec-social.admin.rooms.icon'),
+            value: this.channelIcon,
+            oninput: (event: Event) => (this.channelIcon = (event.target as HTMLInputElement).value),
+          }),
           m('select', { className: 'FormControl', value: this.channelCategory, onchange: (event: Event) => (this.channelCategory = (event.target as HTMLSelectElement).value) }, [m('option', { value: '' }, app.translator.trans('cengizkemec-social.admin.rooms.no_category')), categories.map((category: any) => m('option', { value: category.id }, category.name))]),
           m('select', { className: 'FormControl', value: this.channelRoom, onchange: (event: Event) => (this.channelRoom = (event.target as HTMLSelectElement).value) }, [m('option', { value: '' }, app.translator.trans('cengizkemec-social.admin.rooms.standalone')), rooms.map((room: any) => m('option', { value: room.id }, room.name))]),
           m('select', { className: 'FormControl', value: this.channelVisibility, onchange: (event: Event) => (this.channelVisibility = (event.target as HTMLSelectElement).value) }, ['public', 'members', 'staff'].map((value) => m('option', { value, selected: this.channelVisibility === value }, app.translator.trans(`cengizkemec-social.admin.rooms.visibility_options.${value}`)))),
@@ -375,8 +421,22 @@ export default class AdminRoomManager {
         ]),
         m('div', { className: 'SocialAdminList' }, channels.map((channel: any) =>
           m('div', { className: 'SocialAdminList-row' }, [
-            m('span', { className: 'SocialAdminList-main' }, [m('i', { className: 'fas fa-hashtag' }), m('strong', {}, channel.name), m('small', {}, [channel.categoryName || app.translator.trans('cengizkemec-social.admin.rooms.no_category'), channel.description ? ' · ' + channel.description : ''].join(''))]),
-            m(Button, { className: 'Button Button--link Button--small', onclick: () => this.removeChannel(channel) }, app.translator.trans('cengizkemec-social.admin.common.delete')),
+            m('span', { className: 'SocialAdminList-main' }, [
+              m('i', { className: channel.icon || 'fas fa-hashtag' }),
+              m('strong', {}, channel.name),
+              channel.isLocked ? m('i', { className: 'fas fa-lock SocialAdminLock', title: app.translator.trans('cengizkemec-social.admin.rooms.channel_locked') }) : null,
+              m('small', {}, [
+                channel.roomName || app.translator.trans('cengizkemec-social.admin.rooms.standalone'),
+                ' · ',
+                channel.categoryName || app.translator.trans('cengizkemec-social.admin.rooms.no_category'),
+              ]),
+              channel.slug ? m('small', { className: 'SocialAdminSlug' }, '/social/channels/' + channel.slug) : null,
+              channel.createdAt ? m('small', { className: 'SocialAdminSlug' }, app.translator.trans('cengizkemec-social.admin.rooms.channel_created_at', { time: this.formatTimestamp(channel.createdAt) })) : null,
+            ]),
+            m('div', { className: 'SocialAdminList-actions' }, [
+              m(Button, { className: 'Button Button--link Button--small', onclick: () => this.openChannel(channel) }, app.translator.trans('cengizkemec-social.admin.common.edit')),
+              m(Button, { className: 'Button Button--link Button--small', onclick: () => this.removeChannel(channel) }, app.translator.trans('cengizkemec-social.admin.common.delete')),
+            ]),
           ])
         )),
       ]),

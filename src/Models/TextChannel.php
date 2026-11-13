@@ -15,6 +15,7 @@ class TextChannel extends AbstractModel
         'position' => 'integer',
         'is_default' => 'boolean',
         'is_locked' => 'boolean',
+        'allowed_groups' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

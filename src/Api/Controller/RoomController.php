@@ -13,6 +13,7 @@ use CengizKemec\Social\Models\RoomParticipant;
 use CengizKemec\Social\Models\TextChannel;
 use CengizKemec\Social\Realtime\Centrifugo;
 use CengizKemec\Social\Support\Access;
+use CengizKemec\Social\Support\ChannelSlug;
 use CengizKemec\Social\Support\ModerationLogService;
 use CengizKemec\Social\Support\Notifier;
 use CengizKemec\Social\Support\RateLimit;
@@ -99,8 +100,10 @@ class RoomController extends AbstractSocialController
             ->filter(fn (TextChannel $channel) => $this->access->canViewChannel($channel, $actor))
             ->map(fn (TextChannel $channel) => [
                 'id' => (int) $channel->id,
+                'slug' => $channel->slug,
                 'name' => $channel->name,
                 'description' => $channel->description,
+                'icon' => $channel->icon,
                 'visibility' => $channel->visibility,
                 'categoryId' => $channel->category_id ? (int) $channel->category_id : null,
                 'categoryName' => $channel->category?->name,
@@ -273,6 +276,8 @@ class RoomController extends AbstractSocialController
             $channel = new TextChannel();
             $channel->room_id = $room->id;
             $channel->name = 'general';
+            $channel->slug = ChannelSlug::unique(($room->slug ?: 'room-'.$room->id).'-sohbet');
+            $channel->icon = 'fas fa-hashtag';
             $channel->description = $name.' text chat';
             $channel->visibility = $visibility === 'public' ? 'public' : 'members';
             $channel->position = 0;
@@ -476,7 +481,7 @@ class RoomController extends AbstractSocialController
             ->where('last_seen_at', '>', \Illuminate\Support\now()->subMinutes(2))
             ->count();
 
-        if ($room->is_voice && $liveCount >= $room->capacity) {
+        if ($room->is_voice && $room->capacity > 0 && $liveCount >= $room->capacity) {
             $this->validationError('room_full');
         }
 

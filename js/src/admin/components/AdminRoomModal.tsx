@@ -12,12 +12,13 @@ export default class AdminRoomModal extends Modal {
   categoryId: number | null = null;
   visibility = 'public';
   capacity = 25;
+  unlimitedCapacity = false;
   isVoice = true;
   isText = true;
   allowScreenShare = true;
   sortOrder = 0;
   status = 'active';
-  allowedGroups = '';
+  allowedGroupIds: number[] = [];
   password = '';
   loading = false;
   error: string | null = null;
@@ -45,13 +46,14 @@ export default class AdminRoomModal extends Modal {
       this.icon = room.icon || 'fas fa-headset';
       this.categoryId = room.categoryId;
       this.visibility = room.visibility;
-      this.capacity = room.capacity;
+      this.capacity = Number(room.capacity) || 0;
+      this.unlimitedCapacity = Number(room.capacity) === 0;
       this.isVoice = room.isVoice;
       this.isText = room.isText;
       this.allowScreenShare = room.allowScreenShare;
       this.sortOrder = room.sortOrder || 0;
       this.status = room.status || 'active';
-      this.allowedGroups = (room.allowedGroups || []).join(',');
+      this.allowedGroupIds = (room.allowedGroups || []).map((id: any) => Number(id));
     }
   }
 
@@ -64,7 +66,13 @@ export default class AdminRoomModal extends Modal {
   }
 
   capacityValid(): boolean {
-    return Number.isFinite(this.capacity) && this.capacity >= 2 && this.capacity <= this.maxCapacity();
+    return this.unlimitedCapacity || (Number.isFinite(this.capacity) && this.capacity >= 2 && this.capacity <= this.maxCapacity());
+  }
+
+  toggleGroup(id: number): void {
+    this.allowedGroupIds = this.allowedGroupIds.includes(id)
+      ? this.allowedGroupIds.filter((value) => value !== id)
+      : [...this.allowedGroupIds, id];
   }
 
   canSave(): boolean {
@@ -92,13 +100,13 @@ export default class AdminRoomModal extends Modal {
       icon: this.icon,
       category_id: this.categoryId,
       visibility: this.visibility,
-      capacity: this.capacity,
+      capacity: this.unlimitedCapacity ? 0 : this.capacity,
       is_voice: this.isVoice,
       is_text: this.isText,
       allow_screen_share: this.allowScreenShare,
       sort_order: this.sortOrder,
       status: this.status,
-      allowed_groups: this.allowedGroups.split(',').map((id) => Number(id.trim())).filter(Boolean),
+      allowed_groups: this.allowedGroupIds,
       password: this.password,
     };
 
@@ -114,6 +122,30 @@ export default class AdminRoomModal extends Modal {
         this.loading = false;
         m.redraw();
       });
+  }
+
+  groupPicker(): any {
+    const groups = this.attrs.groups || [];
+
+    if (!groups.length) return null;
+
+    return m('div', { className: 'Form-group' }, [
+      m('label', {}, app.translator.trans('cengizkemec-social.admin.rooms.allowed_groups')),
+      m('div', { className: 'SocialAdminGroupPicker' }, groups.map((group: any) =>
+        m('label', { className: 'checkbox SocialAdminGroupPicker-item', key: group.id }, [
+          m('input', {
+            type: 'checkbox',
+            checked: this.allowedGroupIds.includes(Number(group.id)),
+            onchange: () => this.toggleGroup(Number(group.id)),
+          }),
+          group.icon ? m('i', { className: group.icon }) : null,
+          ' ',
+          group.name,
+          group.color ? m('span', { className: 'SocialAdminGroupPicker-dot', style: { background: group.color } }) : null,
+        ])
+      )),
+      m('div', { className: 'helpText' }, app.translator.trans('cengizkemec-social.admin.rooms.allowed_groups_help')),
+    ]);
   }
 
   content(): any {
@@ -147,20 +179,39 @@ export default class AdminRoomModal extends Modal {
             type: 'number',
             min: 2,
             max: this.maxCapacity(),
-            value: this.capacity,
+            value: this.unlimitedCapacity ? '' : this.capacity,
+            disabled: this.unlimitedCapacity,
+            placeholder: app.translator.trans('cengizkemec-social.admin.rooms.unlimited'),
             oninput: (event: Event) => (this.capacity = Number((event.target as HTMLInputElement).value)),
           }),
-          m('div', { className: 'helpText' }, app.translator.trans('cengizkemec-social.admin.rooms.capacity_help', {
-            min: 2,
-            max: this.maxCapacity(),
-          })),
+            m('label', { className: 'checkbox' }, [
+            m('input', {
+              type: 'checkbox',
+              checked: this.unlimitedCapacity,
+              onchange: (event: Event) => {
+                this.unlimitedCapacity = (event.target as HTMLInputElement).checked;
+
+                if (!this.unlimitedCapacity && (!Number.isFinite(this.capacity) || this.capacity < 2)) {
+                  this.capacity = Number(this.attrs.limits?.defaultRoomCapacity) || 25;
+                }
+              },
+            }),
+            ' ',
+            app.translator.trans('cengizkemec-social.admin.rooms.unlimited_capacity'),
+          ]),
+          m('div', { className: 'helpText' }, this.unlimitedCapacity
+            ? app.translator.trans('cengizkemec-social.admin.rooms.unlimited_capacity_help')
+            : app.translator.trans('cengizkemec-social.admin.rooms.capacity_help', {
+                min: 2,
+                max: this.maxCapacity(),
+              })),
         ]),
       ]),
       m('div', { className: 'Form-row' }, [
         m('div', { className: 'Form-group Form-group--half' }, [m('label', {}, app.translator.trans('cengizkemec-social.admin.rooms.sort_order')), m('input', { className: 'FormControl', type: 'number', value: this.sortOrder, oninput: (event: Event) => (this.sortOrder = Number((event.target as HTMLInputElement).value)) })]),
         m('div', { className: 'Form-group Form-group--half' }, [m('label', {}, app.translator.trans('cengizkemec-social.admin.rooms.status')), m('select', { className: 'FormControl', value: this.status, onchange: (event: Event) => (this.status = (event.target as HTMLSelectElement).value) }, ['active', 'closed'].map((value) => m('option', { value, selected: this.status === value }, value)))]),
       ]),
-      m('div', { className: 'Form-group' }, [m('label', {}, app.translator.trans('cengizkemec-social.admin.rooms.allowed_groups')), m('input', { className: 'FormControl', value: this.allowedGroups, placeholder: '1,4', oninput: (event: Event) => (this.allowedGroups = (event.target as HTMLInputElement).value) }), m('div', { className: 'helpText' }, app.translator.trans('cengizkemec-social.admin.rooms.allowed_groups_help'))]),
+      this.groupPicker(),
       m('div', { className: 'Form-group' }, [m('label', {}, app.translator.trans('cengizkemec-social.admin.rooms.password')), m('input', { className: 'FormControl', type: 'password', value: this.password, oninput: (event: Event) => (this.password = (event.target as HTMLInputElement).value), placeholder: this.room?.hasPassword ? app.translator.trans('cengizkemec-social.admin.rooms.password_keep') : '' })]),
       m('div', { className: 'Form-group SocialAdminRoomModal-flags' }, [
         m('label', { className: 'checkbox' }, [m('input', { type: 'checkbox', checked: this.isVoice, onchange: (event: Event) => (this.isVoice = (event.target as HTMLInputElement).checked) }), ' ', app.translator.trans('cengizkemec-social.admin.rooms.voice')]),

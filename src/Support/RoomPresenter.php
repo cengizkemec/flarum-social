@@ -34,8 +34,10 @@ class RoomPresenter
                 ->filter(fn (TextChannel $channel) => $this->access->canViewChannel($channel, $actor ?? new \Flarum\User\Guest()))
                 ->map(fn (TextChannel $channel) => [
                     'id' => (int) $channel->id,
+                    'slug' => $channel->slug,
                     'name' => $channel->name,
                     'description' => $channel->description,
+                    'icon' => $channel->icon,
                     'visibility' => $channel->visibility,
                     'isLocked' => (bool) $channel->is_locked,
                 ])

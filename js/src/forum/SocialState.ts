@@ -11,6 +11,7 @@ export interface SocialBootstrap {
   userRoomCategoryIds: number[];
   rooms: any[];
   channels: any[];
+  allChannels: any[];
   onlineMembers: any[];
   offlineMembers: any[];
   leaderboards: {
@@ -58,6 +59,10 @@ class SocialState {
 
   get channels(): any[] {
     return this.data?.channels || [];
+  }
+
+  get allChannels(): any[] {
+    return this.data?.allChannels || this.channels;
   }
 
   get onlineMembers(): any[] {

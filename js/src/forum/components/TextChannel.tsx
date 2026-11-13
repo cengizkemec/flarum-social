@@ -211,7 +211,7 @@ export default class TextChannel {
     const typers = Object.values(this.typers);
     const title = this.attrs.title || this.channel.name;
     const description = this.attrs.description || this.channel.description;
-    const icon = this.attrs.icon || 'fas fa-hashtag';
+    const icon = this.attrs.icon || this.channel.icon || 'fas fa-hashtag';
 
     const canUpload = Boolean(SocialState.user && SocialState.can('uploadMedia'));
 

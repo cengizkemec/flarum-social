@@ -1,7 +1,7 @@
 import app from 'flarum/forum/app';
 import SocialState from '../SocialState';
 import voiceSession from '../voiceSession';
-import { Avatar } from '../utils';
+import { Avatar, roomCapacityLabel } from '../utils';
 
 export default class VoiceStage {
   view(vnode: any): any {
@@ -19,7 +19,7 @@ export default class VoiceStage {
         m('h2', {}, room.name),
         m('p', {}, connectingHere ? app.translator.trans('cengizkemec-social.forum.voice.connecting') : room.description || app.translator.trans('cengizkemec-social.forum.voice.join_text')),
         m('div', { className: 'SocialVoiceStage-meta' }, [
-          m('span', {}, [m('i', { className: 'fas fa-user-group' }), ' ', room.participantCount || 0, ' / ', room.capacity]),
+          m('span', {}, [m('i', { className: 'fas fa-user-group' }), ' ', roomCapacityLabel(room)]),
           room.isLocked ? m('span', { className: 'SocialBadge' }, app.translator.trans('cengizkemec-social.forum.rooms.locked')) : null,
           room.visibility !== 'public' ? m('span', { className: 'SocialBadge' }, app.translator.trans(`cengizkemec-social.forum.post.visibility.${room.visibility}`)) : null,
         ]),

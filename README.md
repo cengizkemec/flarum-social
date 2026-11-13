@@ -7,8 +7,10 @@ It is a native Flarum extension. It uses Flarum users, sessions, permissions, tr
 ## Features
 
 - Public feed, post pages, comments, reactions, bookmarks, stories, media and hashtags.
-- Slug URLs for rooms, for example `/social/rooms/general-chat`, with legacy numeric URLs still accepted.
+- Slug URLs for rooms and text channels, for example `/social/rooms/general-chat` and `/social/channels/sohbet`, with legacy numeric URLs still accepted.
 - Discord-style left navigation with permanent voice rooms, live participant rows and participant counts.
+- Text channels with Font Awesome icons, editable slugs, group permissions, room assignment and ACP management.
+- Optional unlimited room capacity (`0` / `∞`) for rooms that should not have a participant cap.
 - Voice rooms with LiveKit: join from the sidebar, persistent voice panel while browsing, mute/deafen, push-to-talk, screen sharing, per-member volume and Discord-style sound cues.
 - Chat-first voice rooms: joining a voice room opens that room's own text chat while the voice connection starts in the background.
 - Member-created temporary rooms that are deleted ten seconds after the last participant leaves. Permanent rooms stay online and show their live participant count.

@@ -13,10 +13,12 @@ use CengizKemec\Social\Models\RoomParticipant;
 use CengizKemec\Social\Models\TextChannel;
 use CengizKemec\Social\Realtime\Centrifugo;
 use CengizKemec\Social\Support\Access;
+use CengizKemec\Social\Support\ChannelSlug;
 use CengizKemec\Social\Support\ModerationLogService;
 use CengizKemec\Social\Support\RoomSlug;
 use CengizKemec\Social\Support\SocialSettings;
 use CengizKemec\Social\Voice\LiveKit;
+use Flarum\Group\Group;
 use Flarum\Locale\TranslatorInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -61,7 +63,8 @@ class AdminRoomController extends AbstractSocialController
     {
         $categories = RoomCategory::query()->orderBy('sort_order')->get();
         $rooms = Room::query()->with(['owner', 'category'])->orderBy('sort_order')->orderBy('name')->get();
-        $channels = TextChannel::query()->orderBy('position')->get();
+        $channels = TextChannel::query()->with(['category', 'room'])->orderBy('position')->orderBy('name')->get();
+        $groups = Group::query()->orderBy('position')->orderBy('name_singular')->get();
 
         return $this->json([
             'data' => [
@@ -98,23 +101,59 @@ class AdminRoomController extends AbstractSocialController
                     'createdAt' => $room->created_at?->toIso8601String(),
                     'channels' => $channels->where('room_id', $room->id)->map(fn (TextChannel $channel) => [
                         'id' => (int) $channel->id,
+                        'slug' => $channel->slug,
                         'name' => $channel->name,
                         'description' => $channel->description,
+                        'icon' => $channel->icon,
                         'visibility' => $channel->visibility,
                         'position' => (int) $channel->position,
                         'isLocked' => (bool) $channel->is_locked,
+                        'allowedGroups' => $channel->allowed_groups ?? [],
+                        'categoryId' => $channel->category_id ? (int) $channel->category_id : null,
+                        'categoryName' => $channel->category?->name,
+                        'createdAt' => $channel->created_at?->toIso8601String(),
+                        'updatedAt' => $channel->updated_at?->toIso8601String(),
                     ])->values()->all(),
                 ])->all(),
                 'channels' => $channels->whereNull('room_id')->map(fn (TextChannel $channel) => [
                     'id' => (int) $channel->id,
+                    'slug' => $channel->slug,
                     'name' => $channel->name,
                     'description' => $channel->description,
+                    'icon' => $channel->icon,
                     'visibility' => $channel->visibility,
                     'position' => (int) $channel->position,
                     'isLocked' => (bool) $channel->is_locked,
+                    'allowedGroups' => $channel->allowed_groups ?? [],
                     'categoryId' => $channel->category_id ? (int) $channel->category_id : null,
                     'categoryName' => $channel->category?->name,
+                    'createdAt' => $channel->created_at?->toIso8601String(),
+                    'updatedAt' => $channel->updated_at?->toIso8601String(),
                 ])->values()->all(),
+                'allChannels' => $channels->map(fn (TextChannel $channel) => [
+                    'id' => (int) $channel->id,
+                    'slug' => $channel->slug,
+                    'name' => $channel->name,
+                    'description' => $channel->description,
+                    'icon' => $channel->icon,
+                    'visibility' => $channel->visibility,
+                    'position' => (int) $channel->position,
+                    'isLocked' => (bool) $channel->is_locked,
+                    'allowedGroups' => $channel->allowed_groups ?? [],
+                    'roomId' => $channel->room_id ? (int) $channel->room_id : null,
+                    'roomSlug' => $channel->room?->slug,
+                    'roomName' => $channel->room?->name,
+                    'categoryId' => $channel->category_id ? (int) $channel->category_id : null,
+                    'categoryName' => $channel->category?->name,
+                    'createdAt' => $channel->created_at?->toIso8601String(),
+                    'updatedAt' => $channel->updated_at?->toIso8601String(),
+                ])->values()->all(),
+                'groups' => $groups->map(fn (Group $group) => [
+                    'id' => (int) $group->id,
+                    'name' => $group->name_singular,
+                    'color' => $group->color,
+                    'icon' => $group->icon,
+                ])->all(),
                 'livekitConfigured' => $this->livekit->configured(),
                 'limits' => [
                     'defaultRoomCapacity' => max(2, $this->settings->int('default_room_capacity')),
@@ -161,7 +200,12 @@ class AdminRoomController extends AbstractSocialController
         $room->icon = $this->cleanString($body['icon'] ?? 'fas fa-headset', 60);
         $requestedVisibility = $body['visibility'] ?? 'public';
         $room->visibility = in_array($requestedVisibility, ['public', 'members', 'private', 'staff'], true) ? $requestedVisibility : 'public';
-        $room->capacity = max(2, min($this->settings->int('max_room_capacity'), (int) ($body['capacity'] ?? $this->settings->int('default_room_capacity'))));
+        $requestedCapacity = array_key_exists('capacity', $body)
+            ? (int) $body['capacity']
+            : $this->settings->int('default_room_capacity');
+        $room->capacity = $requestedCapacity === 0
+            ? 0
+            : max(2, min(max(2, $this->settings->int('max_room_capacity')), $requestedCapacity));
         $room->is_voice = $isVoice;
         $room->is_text = $isText;
         $room->allow_screen_share = (bool) ($body['allow_screen_share'] ?? true);
@@ -229,7 +273,10 @@ class AdminRoomController extends AbstractSocialController
         }
 
         if (isset($body['capacity'])) {
-            $room->capacity = max(2, min($this->settings->int('max_room_capacity'), (int) $body['capacity']));
+            $requestedCapacity = (int) $body['capacity'];
+            $room->capacity = $requestedCapacity === 0
+                ? 0
+                : max(2, min(max(2, $this->settings->int('max_room_capacity')), $requestedCapacity));
         }
 
         foreach (['is_voice', 'is_text', 'allow_screen_share', 'is_locked'] as $flag) {
@@ -421,12 +468,18 @@ class AdminRoomController extends AbstractSocialController
         $roomId = (int) ($body['room_id'] ?? 0) ?: null;
         $categoryId = (int) ($body['category_id'] ?? 0) ?: null;
 
-        if ($name === '' || ! preg_match('/^[a-z0-9][a-z0-9-]{1,99}$/', $name)) {
+        if (mb_strlen($name) < 2) {
             $this->validationError('channel_name_invalid');
         }
 
-        if ($roomId && ! Room::query()->find($roomId)) {
-            $this->validationError('room_not_found');
+        $room = null;
+
+        if ($roomId) {
+            $room = Room::query()->find($roomId);
+
+            if (! $room) {
+                $this->validationError('room_not_found');
+            }
         }
 
         if ($categoryId && ! RoomCategory::query()->find($categoryId)) {
@@ -437,21 +490,28 @@ class AdminRoomController extends AbstractSocialController
             $this->validationError('channel_exists');
         }
 
+        $requestedSlug = $this->cleanString($body['slug'] ?? '', 120);
+
         $channel = new TextChannel();
         $channel->room_id = $roomId;
         $channel->category_id = $categoryId;
         $channel->name = $name;
+        $channel->slug = ChannelSlug::unique($requestedSlug !== '' ? $requestedSlug : $name);
+        $channel->icon = $this->cleanString($body['icon'] ?? 'fas fa-hashtag', 60) ?: 'fas fa-hashtag';
         $channel->description = $this->cleanString($body['description'] ?? '', 500) ?: null;
         $requestedVisibility = $body['visibility'] ?? 'members';
         $channel->visibility = in_array($requestedVisibility, ['public', 'members', 'staff'], true) ? $requestedVisibility : 'members';
         $channel->position = (int) ($body['position'] ?? 0);
         $channel->is_default = false;
         $channel->is_locked = (bool) ($body['is_locked'] ?? false);
+        $channel->allowed_groups = $this->intArray($body['allowed_groups'] ?? []) ?: null;
         $channel->created_at = \Illuminate\Support\now();
         $channel->updated_at = \Illuminate\Support\now();
         $channel->save();
 
-        return $this->json(['data' => ['id' => (int) $channel->id]], 201);
+        $this->enableRoomTextChat($room);
+
+        return $this->json(['data' => ['id' => (int) $channel->id, 'slug' => $channel->slug]], 201);
     }
 
     protected function updateChannel(ServerRequestInterface $request): ResponseInterface
@@ -464,12 +524,23 @@ class AdminRoomController extends AbstractSocialController
 
         $body = $this->body($request);
 
-        if (isset($body['name'])) {
+        if (array_key_exists('name', $body)) {
             $name = $this->cleanString($body['name'], 100);
-            if (! preg_match('/^[a-z0-9][a-z0-9-]{1,99}$/', $name)) {
+
+            if (mb_strlen($name) < 2) {
                 $this->validationError('channel_name_invalid');
             }
+
             $channel->name = $name;
+        }
+
+        if (array_key_exists('slug', $body)) {
+            $requestedSlug = $this->cleanString($body['slug'], 120);
+            $channel->slug = ChannelSlug::unique($requestedSlug !== '' ? $requestedSlug : $channel->name, (int) $channel->id);
+        }
+
+        if (array_key_exists('icon', $body)) {
+            $channel->icon = $this->cleanString($body['icon'], 60) ?: 'fas fa-hashtag';
         }
 
         if (array_key_exists('description', $body)) {
@@ -486,6 +557,32 @@ class AdminRoomController extends AbstractSocialController
             $channel->category_id = $categoryId;
         }
 
+        if (array_key_exists('room_id', $body)) {
+            $roomId = (int) $body['room_id'] ?: null;
+            $room = null;
+
+            if ($roomId) {
+                $room = Room::query()->find($roomId);
+
+                if (! $room) {
+                    $this->validationError('room_not_found');
+                }
+            }
+
+            if ($roomId !== ($channel->room_id ? (int) $channel->room_id : null)) {
+                if (TextChannel::query()
+                    ->where('room_id', $roomId)
+                    ->where('name', $channel->name)
+                    ->where('id', '!=', $channel->id)
+                    ->exists()) {
+                    $this->validationError('channel_exists');
+                }
+
+                $channel->room_id = $roomId;
+                $this->enableRoomTextChat($room);
+            }
+        }
+
         if (isset($body['visibility']) && in_array($body['visibility'], ['public', 'members', 'staff'], true)) {
             $channel->visibility = $body['visibility'];
         }
@@ -498,10 +595,25 @@ class AdminRoomController extends AbstractSocialController
             $channel->is_locked = (bool) $body['is_locked'];
         }
 
+        if (array_key_exists('allowed_groups', $body)) {
+            $channel->allowed_groups = $this->intArray($body['allowed_groups']) ?: null;
+        }
+
         $channel->updated_at = \Illuminate\Support\now();
         $channel->save();
 
-        return $this->json(['data' => ['id' => (int) $channel->id]]);
+        return $this->json(['data' => ['id' => (int) $channel->id, 'slug' => $channel->slug]]);
+    }
+
+    protected function enableRoomTextChat(?Room $room): void
+    {
+        if (! $room || $room->is_text) {
+            return;
+        }
+
+        $room->is_text = true;
+        $room->updated_at = \Illuminate\Support\now();
+        $room->save();
     }
 
     protected function deleteChannel(ServerRequestInterface $request): ResponseInterface
@@ -527,6 +639,8 @@ class AdminRoomController extends AbstractSocialController
         $channel = new TextChannel();
         $channel->room_id = $room->id;
         $channel->name = 'general';
+        $channel->slug = ChannelSlug::unique(($room->slug ?: 'room-'.$room->id).'-sohbet');
+        $channel->icon = 'fas fa-hashtag';
         $channel->description = $room->name.' text chat';
         $channel->visibility = $room->visibility === 'public' ? 'public' : 'members';
         $channel->position = 0;

@@ -1,7 +1,7 @@
 import app from 'flarum/forum/app';
 import SocialPage from '../components/SocialPage';
 import { get, post } from '../../common/api';
-import { Avatar, timeAgo } from '../utils';
+import { Avatar, channelUrl, timeAgo } from '../utils';
 import { openLoginModal } from '../authModals';
 
 export default class NotificationsPage extends SocialPage {
@@ -49,7 +49,11 @@ export default class NotificationsPage extends SocialPage {
       case 'invite':
         return data.room_id ? app.route('social.room', { id: data.room_id }) : app.route('social.rooms');
       case 'mention':
-        if (data.channel_id) return app.route('social.channel', { id: data.channel_id });
+        if (data.channel_id) {
+          const channel = this.state.allChannels.find((item: any) => Number(item.id) === Number(data.channel_id));
+
+          return channel ? channelUrl(channel) : app.route('social.channel', { id: data.channel_id });
+        }
         if (data.post_id) return app.route('social.post', { id: data.post_id });
         return app.route('social.index');
       case 'comment':

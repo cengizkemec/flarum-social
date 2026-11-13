@@ -1,7 +1,7 @@
 import app from 'flarum/forum/app';
 import { get, post } from '../../common/api';
 import SocialState from '../SocialState';
-import { Avatar, handleApiError, roomUrl, timeAgo } from '../utils';
+import { Avatar, handleApiError, roomCapacityLabel, roomUrl, timeAgo } from '../utils';
 import SocialWidgets from './SocialWidgets';
 
 export default class SocialAside {
@@ -339,7 +339,7 @@ export default class SocialAside {
             rooms.map((room: any) =>
               m('a', { className: 'SocialAside-room', href: roomUrl(room) }, [
                 m('span', { className: 'SocialAside-room-icon' }, m('i', { className: room.icon || 'fas fa-volume-high' })),
-                m('span', { className: 'SocialAside-room-info' }, [m('strong', {}, room.name), m('small', {}, `${room.participantCount || 0} / ${room.capacity}`)]),
+                m('span', { className: 'SocialAside-room-info' }, [m('strong', {}, room.name), m('small', {}, roomCapacityLabel(room))]),
                 m('span', { className: 'SocialAside-room-live' }, m('i', { className: 'fas fa-signal' })),
               ])
             ),

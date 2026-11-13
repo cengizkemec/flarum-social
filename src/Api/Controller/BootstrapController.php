@@ -50,6 +50,7 @@ class BootstrapController extends AbstractSocialController
         $categories = [];
         $rooms = [];
         $channels = [];
+        $allChannels = [];
         $userRoomCategoryIds = [];
 
         if ($canView) {
@@ -84,23 +85,31 @@ class BootstrapController extends AbstractSocialController
                 ])
                 ->all();
 
-            $channels = TextChannel::query()
-                ->whereNull('room_id')
-                ->with('category')
+            $allChannels = TextChannel::query()
+                ->with(['category', 'room'])
                 ->orderBy('position')
+                ->orderBy('name')
                 ->get()
                 ->filter(fn (TextChannel $channel) => $this->access->canViewChannel($channel, $actor))
                 ->map(fn (TextChannel $channel) => [
                     'id' => (int) $channel->id,
+                    'slug' => $channel->slug,
                     'name' => $channel->name,
                     'description' => $channel->description,
+                    'icon' => $channel->icon,
                     'visibility' => $channel->visibility,
-                    'roomId' => null,
+                    'roomId' => $channel->room_id ? (int) $channel->room_id : null,
+                    'roomSlug' => $channel->room?->slug,
+                    'roomName' => $channel->room?->name,
                     'categoryId' => $channel->category_id ? (int) $channel->category_id : null,
                     'categoryName' => $channel->category?->name,
+                    'createdAt' => $channel->created_at?->toIso8601String(),
+                    'updatedAt' => $channel->updated_at?->toIso8601String(),
                 ])
                 ->values()
                 ->all();
+
+            $channels = array_values(array_filter($allChannels, fn (array $channel) => $channel['roomId'] === null));
         }
 
         $onlineMembers = [];
@@ -357,6 +366,7 @@ class BootstrapController extends AbstractSocialController
             'userRoomCategoryIds' => $userRoomCategoryIds,
             'rooms' => $roomData,
             'channels' => $channels,
+            'allChannels' => $allChannels,
             'onlineMembers' => $onlineMembers,
             'offlineMembers' => $offlineMembers,
             'leaderboards' => [

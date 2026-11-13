@@ -399,13 +399,18 @@ class Access
         }
 
         if ($this->isGuest($actor)) {
-            return $channel->visibility === 'public'
+            return empty($channel->allowed_groups)
+                && $channel->visibility === 'public'
                 && $this->settings->bool('guest_public_community')
                 && $this->settings->bool('guest_show_room_names');
         }
 
         if ($channel->visibility === 'staff') {
             return $this->isStaff($actor);
+        }
+
+        if (! $this->isInAllowedGroups($actor, $channel->allowed_groups ?? [])) {
+            return false;
         }
 
         return $channel->visibility === 'public' || $channel->visibility === 'members';

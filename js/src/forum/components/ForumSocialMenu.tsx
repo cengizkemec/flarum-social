@@ -1,6 +1,6 @@
 import app from 'flarum/forum/app';
 import { get } from '../../common/api';
-import { roomUrl } from '../utils';
+import { channelUrl, roomUrl } from '../utils';
 
 let cachedData: any = null;
 let pendingRequest: Promise<any> | null = null;
@@ -103,8 +103,8 @@ export default class ForumSocialMenu {
           ...group.channels.map((channel: any) =>
             m('a', {
               className: 'SocialForumMenu-link SocialForumMenu-link--text',
-              href: app.route('social.channel', { id: channel.id }),
-            }, [m('i', { className: 'fas fa-hashtag' }), m('span', {}, channel.name)])
+              href: channelUrl(channel),
+            }, [m('i', { className: channel.icon || 'fas fa-hashtag' }), m('span', {}, channel.name)])
           ),
         ])
       ),

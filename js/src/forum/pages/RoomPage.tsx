@@ -3,7 +3,7 @@ import SocialPage from '../components/SocialPage';
 import SocialState from '../SocialState';
 import voiceSession from '../voiceSession';
 import { del, get, post } from '../../common/api';
-import { Avatar, handleApiError, promptLogin, timeAgo } from '../utils';
+import { Avatar, handleApiError, promptLogin, roomCapacityLabel, timeAgo } from '../utils';
 import VoiceStage from '../components/VoiceStage';
 import TextChannel from '../components/TextChannel';
 import { openLoginModal } from '../authModals';
@@ -13,6 +13,7 @@ export default class RoomPage extends SocialPage {
   loading = true;
   error: string | null = null;
   tab = 'voice';
+  activeChannelId: number | null = null;
   menuOpen = false;
   loginPrompted = false;
   pendingInvite: string | null = null;
@@ -136,6 +137,10 @@ export default class RoomPage extends SocialPage {
         this.room = room;
         app.setTitle(this.room.name);
 
+        if (room.channels?.length && !room.channels.some((channel: any) => Number(channel.id) === Number(this.activeChannelId))) {
+          this.activeChannelId = Number(room.channels[0].id);
+        }
+
         // Text-only rooms are conversations. Guests are sent straight to
         // Flarum's own login/sign-up modal instead of a blank chat panel.
         if (!SocialState.user && room.isText && !room.isVoice && !this.loginPrompted) {
@@ -257,6 +262,12 @@ export default class RoomPage extends SocialPage {
     ]);
   }
 
+  currentChannel(): any {
+    const channels = this.room?.channels || [];
+
+    return channels.find((channel: any) => Number(channel.id) === Number(this.activeChannelId)) || channels[0] || null;
+  }
+
   content(): any {
     if (this.loading) return m('div', { className: 'SocialLoading' }, m('i', { className: 'fas fa-spinner fa-spin' }));
 
@@ -268,7 +279,7 @@ export default class RoomPage extends SocialPage {
     }
 
     const room = this.room;
-    const channel = room.channels?.[0];
+    const channel = this.currentChannel();
     const voiceActive = voiceSession.connected && voiceSession.roomInfo?.id === room.id;
 
     return m('div', { className: 'SocialRoomPage' }, [
@@ -280,7 +291,7 @@ export default class RoomPage extends SocialPage {
             m('h1', {}, room.name),
             m('p', {}, room.description || ''),
             m('div', { className: 'SocialRoomHeader-meta' }, [
-              m('span', {}, [m('i', { className: 'fas fa-user-group' }), ' ', room.participantCount ?? 0, ' / ', room.capacity]),
+              m('span', {}, [m('i', { className: 'fas fa-user-group' }), ' ', roomCapacityLabel(room)]),
               room.category ? m('span', {}, [m('i', { className: room.category.icon || 'fas fa-folder' }), ' ', room.category.name]) : null,
               room.owner ? m('span', {}, [m('i', { className: 'fas fa-crown' }), ' ', app.translator.trans('cengizkemec-social.forum.rooms.owner'), ': ', room.owner.displayName]) : null,
               room.expiresAt ? m('span', {}, [m('i', { className: 'fas fa-clock' }), ' ', app.translator.trans('cengizkemec-social.forum.rooms.expires', { time: timeAgo(room.expiresAt) })]) : null,
@@ -325,12 +336,25 @@ export default class RoomPage extends SocialPage {
             : null,
           this.tab === 'text' && room.isText
             ? SocialState.user && channel
-              ? m(TextChannel, {
-                  channel,
-                  title: room.name,
-                  description: room.description || '',
-                  icon: room.icon || 'fas fa-headset',
-                })
+              ? [
+                  room.channels?.length > 1
+                    ? m('div', { className: 'SocialRoomChannelTabs' }, room.channels.map((item: any) =>
+                        m('button', {
+                          className: 'SocialTab' + (Number(item.id) === Number(channel.id) ? ' is-active' : ''),
+                          onclick: () => {
+                            this.activeChannelId = Number(item.id);
+                            m.redraw();
+                          },
+                        }, [m('i', { className: item.icon || 'fas fa-hashtag' }), ' ', item.name])
+                      ))
+                    : null,
+                  m(TextChannel, {
+                    channel,
+                    title: channel.name === 'general' ? room.name : channel.name,
+                    description: channel.description || room.description || '',
+                    icon: channel.icon || room.icon || 'fas fa-headset',
+                  }),
+                ]
               : m('div', { className: 'SocialPanel SocialPanel--auth' }, [
                   m('i', { className: 'fas fa-comments' }),
                   m('h3', {}, app.translator.trans('cengizkemec-social.forum.messages.login_to_chat')),
@@ -356,7 +380,7 @@ export default class RoomPage extends SocialPage {
               m('dt', {}, app.translator.trans('cengizkemec-social.forum.rooms.visibility')),
               m('dd', {}, app.translator.trans(`cengizkemec-social.forum.post.visibility.${room.visibility}`)),
               m('dt', {}, app.translator.trans('cengizkemec-social.forum.rooms.capacity')),
-              m('dd', {}, `${room.capacity}`),
+              m('dd', {}, Number(room.capacity) > 0 ? `${room.capacity}` : app.translator.trans('cengizkemec-social.forum.rooms.unlimited')),
               room.hasPassword ? m('dt', {}, app.translator.trans('cengizkemec-social.forum.rooms.password')) : null,
               room.hasPassword ? m('dd', {}, m('i', { className: 'fas fa-lock' })) : null,
             ]),

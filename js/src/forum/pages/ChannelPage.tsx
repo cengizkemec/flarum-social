@@ -3,13 +3,14 @@ import SocialPage from '../components/SocialPage';
 import SocialState from '../SocialState';
 import TextChannel from '../components/TextChannel';
 import { openLoginModal } from '../authModals';
+import { channelUrl } from '../utils';
 
 export default class ChannelPage extends SocialPage {
   showAside = false;
   loginPrompted = false;
 
   pageTitle(): string {
-    return app.translator.trans('cengizkemec-social.forum.nav.text_channels') as string;
+    return this.channel()?.name || (app.translator.trans('cengizkemec-social.forum.nav.text_channels') as string);
   }
 
   onSocialReady(): void {
@@ -20,7 +21,9 @@ export default class ChannelPage extends SocialPage {
   }
 
   channel(): any {
-    return this.state.channels.find((channel: any) => channel.id === Number(m.route.param('id')));
+    const key = String(m.route.param('id') || '');
+
+    return this.state.allChannels.find((channel: any) => String(channel.slug || '') === key || String(channel.id) === key);
   }
 
   content(): any {
@@ -31,7 +34,17 @@ export default class ChannelPage extends SocialPage {
     }
 
     return m('div', { className: 'SocialChannelPage' }, [
-      m('div', { className: 'SocialPageHead' }, m('div', {}, [m('h1', {}, [m('i', { className: 'fas fa-hashtag' }), ' ', channel.name]), m('p', {}, channel.description || '')])),
+      m('div', { className: 'SocialPageHead' }, m('div', {}, [
+        m('h1', {}, [m('i', { className: channel.icon || 'fas fa-hashtag' }), ' ', channel.name]),
+        m('p', {}, channel.description || ''),
+        channel.roomId
+          ? m('p', { className: 'SocialMuted' }, [
+              m('i', { className: 'fas fa-headset' }),
+              ' ',
+              m('a', { href: app.route('social.room', { slug: channel.roomSlug || channel.roomId }) }, channel.roomName || app.translator.trans('cengizkemec-social.forum.nav.rooms')),
+            ])
+          : null,
+      ])),
       SocialState.user
         ? m(TextChannel, { channel })
         : m('div', { className: 'SocialPanel SocialPanel--auth' }, [
