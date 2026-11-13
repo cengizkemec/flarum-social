@@ -35,6 +35,14 @@
   }
 }
 
+// acpl/mobile-tab mounts a separate fixed bar directly under <body>, outside
+// #app. Social has its own mobile navigation, so hide the forum bar while a
+// Social page is active (including during the initial render).
+body.SocialPage-body-active .MobileTab,
+body:has(#app.SocialPage-body) .MobileTab {
+  display: none !important;
+}
+
 .SocialApp {
   max-width: 1500px;
   margin: 0 auto;

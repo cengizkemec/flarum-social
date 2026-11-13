@@ -32,6 +32,7 @@ export default class SocialPage extends Page {
 
   oninit(vnode: any): void {
     super.oninit(vnode);
+    document.body.classList.add('SocialPage-body-active');
     this.loadState();
 
     this.janitorTimer = window.setInterval(() => this.runJanitor(), 10000);
@@ -40,6 +41,7 @@ export default class SocialPage extends Page {
   onremove(vnode: any): void {
     if (this.janitorTimer !== null) window.clearInterval(this.janitorTimer);
     this.janitorTimer = null;
+    document.body.classList.remove('SocialPage-body-active');
     super.onremove(vnode);
   }
 

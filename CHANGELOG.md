@@ -2,6 +2,13 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.10 - 2026-11-13
+
+- Hid Flarum's own `acpl/mobile-tab` bottom bar while a Social page is active. On small screens it was covering Social's own mobile navigation, so members saw Flarum's Home/Discussions/Login tabs instead of Feed/Explore/Rooms/Messages/Profile.
+- The Flarum mobile tab bar and navigation drawer button remain available on normal forum pages.
+- Added regression coverage with live mobile checks at 390×844: Social bottom navigation is visible, Flarum's bar is hidden on Social, and both return immediately on `/all`.
+- No database changes are required.
+
 ## 1.1.9 - 2026-11-13
 
 - Fixed the mobile Social menu opening an empty area: Flarum's own fixed mobile drawer button was covering the Social menu button in the top-left corner. It is now hidden on Social routes, while remaining available on normal forum pages.
