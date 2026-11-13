@@ -22,6 +22,14 @@
     display: none !important;
   }
 
+  // Flarum still renders its fixed mobile navigation button outside #header.
+  // It overlaps the Social menu button in the top-left corner, so real taps
+  // opened Flarum's empty drawer instead of the Social navigation drawer.
+  #app-navigation,
+  .App-drawer {
+    display: none !important;
+  }
+
   #content {
     padding-top: 0;
   }

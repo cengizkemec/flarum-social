@@ -2,6 +2,14 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.9 - 2026-11-13
+
+- Fixed the mobile Social menu opening an empty area: Flarum's own fixed mobile drawer button was covering the Social menu button in the top-left corner. It is now hidden on Social routes, while remaining available on normal forum pages.
+- Made Social drawer open/close actions render immediately instead of relying on Mithril auto-redraw, which Flarum 2 does not run for route pages. The same scoped click redraw also fixes other simple Social toggles such as tab switches, post menus and reaction pickers.
+- Added an explicit redraw when tapping the drawer overlay or a drawer link, so the panel closes predictably.
+- Live-tested at a 390px mobile viewport on `warthunder.tr`: open, close by overlay, and "Medya" navigation all work with no console errors.
+- No database changes are required.
+
 ## 1.1.8 - 2026-11-12
 
 - Added optional **Use FoF Upload for Social media** support. When `fof/upload` is installed and enabled, new Social uploads use its storage adapters, limits and media library instead of Social's own media filesystem. Social still owns the attachment records, permissions and per-type size/quota checks, so private posts are not bypassed.

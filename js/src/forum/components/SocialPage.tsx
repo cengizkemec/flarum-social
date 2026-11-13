@@ -18,6 +18,18 @@ export default class SocialPage extends Page {
   showAside = true;
   janitorTimer: number | null = null;
 
+  toggleDrawer(): void {
+    this.drawerOpen = !this.drawerOpen;
+    m.redraw.sync();
+  }
+
+  closeDrawer(): void {
+    if (!this.drawerOpen) return;
+
+    this.drawerOpen = false;
+    m.redraw.sync();
+  }
+
   oninit(vnode: any): void {
     super.oninit(vnode);
     this.loadState();
@@ -111,9 +123,7 @@ export default class SocialPage extends Page {
     return m('div', { className: 'SocialApp' + (this.state.config.appearance?.compact ? ' SocialApp--compact' : '') }, [
       m(SocialHeader, {
         state: this.state,
-        ontoggle: () => {
-          this.drawerOpen = !this.drawerOpen;
-        },
+        ontoggle: () => this.toggleDrawer(),
       }),
       m(SocialNewsWidget),
       m('div', { className: 'SocialLayout' + (showAside ? '' : ' SocialLayout--noAside') }, [
@@ -127,8 +137,8 @@ export default class SocialPage extends Page {
       this.state.config.appearance?.mobileBottomNav !== false ? m(MobileNav, { state: this.state }) : null,
       this.drawerOpen
         ? m('div', { className: 'SocialDrawer', onclick: (event: Event) => {
-            if (event.target === event.currentTarget) this.drawerOpen = false;
-          } }, m('div', { className: 'SocialDrawer-panel' }, m(SocialNav, { state: this.state, onclose: () => (this.drawerOpen = false) })))
+            if (event.target === event.currentTarget) this.closeDrawer();
+          } }, m('div', { className: 'SocialDrawer-panel' }, m(SocialNav, { state: this.state, onclose: () => this.closeDrawer() })))
         : null,
     ]);
   }

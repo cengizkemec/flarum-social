@@ -121,6 +121,22 @@ app.initializers.add('cengizkemec-social', () => {
       });
     }
 
+    // Flarum 2 renders route pages through m.render, so Mithril's automatic
+    // event redraw does not run for simple state toggles inside Social (menus,
+    // tabs, drawers). Restore the expected behaviour for clicks in the Social
+    // shell without affecting the rest of the forum.
+    if (!(window as any).__socialClickRedraw) {
+      (window as any).__socialClickRedraw = true;
+
+      document.addEventListener('click', (event: MouseEvent) => {
+        const target = event.target as Element | null;
+
+        if (target && typeof target.closest === 'function' && target.closest('.SocialApp')) {
+          m.redraw();
+        }
+      });
+    }
+
     if (!document.getElementById('social-voice-panel-root')) {
       const root = document.createElement('div');
       root.id = 'social-voice-panel-root';
