@@ -58,13 +58,14 @@ export default class ForumSocialMenu {
 
     const rooms = this.data.rooms || [];
     const channels = this.data.channels || [];
+    const allowedCategoryIds = (this.data.userRoomCategoryIds || []).map((id: any) => Number(id));
     const categories = (this.data.categories || [])
       .map((category: any) => ({
         category,
         rooms: rooms.filter((room: any) => Number(room.categoryId) === Number(category.id)),
         channels: channels.filter((channel: any) => Number(channel.categoryId) === Number(category.id)),
       }))
-      .filter((group: any) => group.rooms.length || group.channels.length);
+      .filter((group: any) => group.rooms.length || group.channels.length || allowedCategoryIds.includes(Number(group.category.id)));
 
     const other = {
       category: { id: 'other', name: app.translator.trans('cengizkemec-social.forum.nav.other_rooms'), icon: 'fas fa-door-open' },
@@ -72,7 +73,7 @@ export default class ForumSocialMenu {
       channels: channels.filter((channel: any) => !channel.categoryId),
     };
 
-    const groups = [...categories, other].filter((group: any) => group.rooms.length || group.channels.length);
+    const groups = [...categories, other].filter((group: any) => group.rooms.length || group.channels.length || allowedCategoryIds.includes(Number(group.category.id)));
 
     if (!groups.length) return null;
 
@@ -87,6 +88,12 @@ export default class ForumSocialMenu {
             group.category.icon ? m('i', { className: group.category.icon }) : null,
             m('span', {}, group.category.name),
           ]),
+          allowedCategoryIds.includes(Number(group.category.id)) && this.data.canCreateRoom
+            ? m('a', {
+                className: 'SocialForumMenu-link SocialForumMenu-link--create',
+                href: app.route('social.rooms') + '?create=1&category=' + group.category.id,
+              }, [m('i', { className: 'fas fa-plus' }), m('span', {}, app.translator.trans('cengizkemec-social.forum.rooms.create_user_room'))])
+            : null,
           ...group.rooms.map((room: any) =>
             m('a', {
               className: 'SocialForumMenu-link',

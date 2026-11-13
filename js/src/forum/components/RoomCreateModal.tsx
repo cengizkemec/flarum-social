@@ -13,6 +13,8 @@ export default class RoomCreateModal extends Modal {
   isText = true;
   allowScreenShare = true;
   lifetime = 12;
+  categoryId: number | null = null;
+  categories: any[] = [];
   loading = false;
   error: string | null = null;
   editing: any = null;
@@ -29,6 +31,13 @@ export default class RoomCreateModal extends Modal {
     this.isText = room ? room.isText : true;
     this.allowScreenShare = room ? room.allowScreenShare : true;
     this.lifetime = 12;
+    this.categories = vnode.attrs.categories || [];
+    const requestedCategory = Number(vnode.attrs.categoryId) || null;
+    this.categoryId = this.categories.some((category: any) => Number(category.id) === requestedCategory)
+      ? requestedCategory
+      : this.categories.length
+      ? Number(this.categories[0].id)
+      : null;
   }
 
   className(): string {
@@ -54,6 +63,7 @@ export default class RoomCreateModal extends Modal {
       is_text: this.isText,
       allow_screen_share: this.allowScreenShare,
       lifetime_hours: this.lifetime,
+      category_id: this.categoryId,
     };
 
     const promise = this.editing
@@ -83,6 +93,16 @@ export default class RoomCreateModal extends Modal {
     }, [
       m('div', { className: 'Form-group' }, [m('label', {}, app.translator.trans('cengizkemec-social.forum.rooms.name')), m('input', { className: 'FormControl', value: this.name, maxlength: 100, oninput: (event: Event) => (this.name = (event.target as HTMLInputElement).value), required: true })]),
       m('div', { className: 'Form-group' }, [m('label', {}, app.translator.trans('cengizkemec-social.forum.rooms.description')), m('textarea', { className: 'FormControl', rows: 3, maxlength: 1000, value: this.description, oninput: (event: Event) => (this.description = (event.target as HTMLTextAreaElement).value) })]),
+      this.categories.length
+        ? m('div', { className: 'Form-group' }, [
+            m('label', {}, app.translator.trans('cengizkemec-social.forum.rooms.category')),
+            m('select', {
+              className: 'FormControl',
+              value: String(this.categoryId ?? ''),
+              onchange: (event: Event) => (this.categoryId = Number((event.target as HTMLSelectElement).value) || null),
+            }, this.categories.map((category: any) => m('option', { value: category.id }, category.name))),
+          ])
+        : null,
       m('div', { className: 'Form-row' }, [
         m('div', { className: 'Form-group Form-group--half' }, [m('label', {}, app.translator.trans('cengizkemec-social.forum.rooms.visibility')), m('select', { className: 'FormControl', value: this.visibility, onchange: (event: Event) => (this.visibility = (event.target as HTMLSelectElement).value) }, ['public', 'private', 'invite'].map((value) => m('option', { value, selected: this.visibility === value }, app.translator.trans(`cengizkemec-social.forum.rooms.visibility_options.${value}`))))]),
         m('div', { className: 'Form-group Form-group--half' }, [m('label', {}, app.translator.trans('cengizkemec-social.forum.rooms.capacity')), m('input', { className: 'FormControl', type: 'number', min: 2, max, value: this.capacity, oninput: (event: Event) => (this.capacity = Number((event.target as HTMLInputElement).value)) })]),
@@ -95,7 +115,7 @@ export default class RoomCreateModal extends Modal {
       ]),
       !this.editing ? m('div', { className: 'Form-group' }, [m('label', {}, app.translator.trans('cengizkemec-social.forum.rooms.lifetime')), m('input', { className: 'FormControl', type: 'number', min: 1, max: 72, value: this.lifetime, oninput: (event: Event) => (this.lifetime = Number((event.target as HTMLInputElement).value)) })]) : null,
       this.error ? m('div', { className: 'Alert Alert--error' }, this.error) : null,
-      m(Button, { className: 'Button Button--primary Button--block', type: 'submit', loading: this.loading, disabled: !this.name.trim() }, app.translator.trans(this.editing ? 'cengizkemec-social.forum.post.save' : 'cengizkemec-social.forum.rooms.create')),
+      m(Button, { className: 'Button Button--primary Button--block', type: 'submit', loading: this.loading, disabled: !this.name.trim() || (this.categories.length > 0 && this.categoryId === null) }, app.translator.trans(this.editing ? 'cengizkemec-social.forum.post.save' : 'cengizkemec-social.forum.rooms.create')),
     ]));
   }
 }

@@ -165,6 +165,9 @@ export default class SocialNav {
     );
 
     const categoryTree = (() => {
+      const allowedCategoryIds = (state.userRoomCategoryIds || []).map((id: any) => Number(id));
+      const canCreate = Boolean(state.user && state.can('createRoom'));
+
       const groups = state.categories.map((category: any) => ({
         category,
         rooms: state.rooms.filter((room: any) => Number(room.categoryId) === Number(category.id)),
@@ -178,15 +181,26 @@ export default class SocialNav {
       };
 
       return [...groups, other]
-        .filter((group) => group.rooms.length || group.channels.length)
-        .map((group) => m('div', { className: 'SocialNav-category' }, [
-          m('div', { className: 'SocialNav-category-title' }, [
-            group.category.icon ? m('i', { className: group.category.icon }) : null,
-            m('span', {}, group.category.name),
-          ]),
-          ...group.rooms.map((room: any) => roomLink(room, Boolean(room.isVoice))),
-          ...group.channels.map((channel: any) => channelLink(channel)),
-        ]));
+        .filter((group) => group.rooms.length || group.channels.length || allowedCategoryIds.includes(Number(group.category.id)))
+        .map((group) => {
+          const allowed = allowedCategoryIds.includes(Number(group.category.id));
+          const createHref = app.route('social.rooms') + '?create=1&category=' + group.category.id;
+
+          return m('div', { className: 'SocialNav-category' }, [
+            m('div', { className: 'SocialNav-category-title' }, [
+              group.category.icon ? m('i', { className: group.category.icon }) : null,
+              m('span', {}, group.category.name),
+            ]),
+            allowed && canCreate
+              ? m('a', { className: 'SocialNav-createRoom', href: createHref, onclick: close }, [
+                  m('i', { className: 'fas fa-plus' }),
+                  m('span', {}, app.translator.trans('cengizkemec-social.forum.rooms.create_user_room')),
+                ])
+              : null,
+            ...group.rooms.map((room: any) => roomLink(room, Boolean(room.isVoice))),
+            ...group.channels.map((channel: any) => channelLink(channel)),
+          ]);
+        });
     })();
 
     return m('aside', { className: 'SocialNav' }, [

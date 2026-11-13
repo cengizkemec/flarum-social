@@ -114,9 +114,34 @@ class RoomController extends AbstractSocialController
                 'rooms' => $rooms->map(fn (Room $room) => $this->presenter->present($room, $actor))->all(),
                 'channels' => $channels,
                 'canCreateRoom' => $this->access->canCreateRoom($actor),
+                'userRoomCategoryIds' => $this->userRoomCategoryIds(),
                 'livekitConfigured' => $this->livekit->configured(),
             ],
         ]);
+    }
+
+    /**
+     * Categories in which member-created rooms may be opened.
+     * An empty list keeps the previous behaviour: any category (or none).
+     *
+     * @return list<int>
+     */
+    protected function userRoomCategoryIds(): array
+    {
+        $raw = (string) $this->settings->get('user_room_category_ids');
+        $ids = array_values(array_unique(array_filter(array_map('intval', preg_split('/[,\s]+/', $raw) ?: []))));
+
+        if (! $ids) {
+            return [];
+        }
+
+        return RoomCategory::query()
+            ->whereIn('id', $ids)
+            ->orderBy('sort_order')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
     }
 
     protected function show(ServerRequestInterface $request): ResponseInterface
@@ -202,8 +227,27 @@ class RoomController extends AbstractSocialController
         $lifetime = (int) ($body['lifetime_hours'] ?? $this->settings->int('user_room_lifetime_hours'));
         $lifetime = max(1, min($this->settings->int('user_room_max_lifetime_hours'), $lifetime));
 
+        $allowedCategoryIds = $this->userRoomCategoryIds();
+        $categoryId = (int) ($body['category_id'] ?? 0) ?: null;
+
+        if ($categoryId !== null) {
+            if (! RoomCategory::query()->find($categoryId)) {
+                $this->validationError('category_not_found');
+            }
+
+            if ($allowedCategoryIds && ! in_array($categoryId, $allowedCategoryIds, true)) {
+                $this->validationError('category_not_allowed');
+            }
+        } elseif ($allowedCategoryIds) {
+            if (count($allowedCategoryIds) === 1) {
+                $categoryId = $allowedCategoryIds[0];
+            } else {
+                $this->validationError('category_required');
+            }
+        }
+
         $room = new Room();
-        $room->category_id = null;
+        $room->category_id = $categoryId;
         $room->owner_id = $actor->id;
         $room->type = 'temporary';
         $room->name = $name;

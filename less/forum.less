@@ -3542,6 +3542,59 @@ body:has(#app.SocialPage-body) .MobileTab {
   font-size: 11px;
 }
 
+.SocialCategoryIntro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--control-bg);
+  border: 1px solid rgba(127, 127, 127, 0.14);
+  border-radius: 10px;
+
+  p {
+    margin: 0;
+    color: var(--muted-color);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+}
+
+.SocialCategoryIntro-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+
+  i {
+    margin-top: 2px;
+    color: var(--social-accent);
+    font-size: 12px;
+  }
+}
+
+.SocialNav-createRoom {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px 5px;
+  color: var(--social-accent);
+  font-size: 10px;
+  font-weight: 700;
+
+  i {
+    font-size: 9px;
+  }
+}
+
+.SocialForumMenu-link--create {
+  color: var(--social-accent);
+  font-weight: 700;
+}
+
 .SocialSectionHead-link,
 .SocialSectionHead-count {
   margin-left: auto;

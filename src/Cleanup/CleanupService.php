@@ -225,17 +225,32 @@ class CleanupService
      */
     public function purgeEmptyTemporaryRooms(?int $seconds = null): int
     {
-        $seconds = max(5, $seconds ?? $this->settings->int('temporary_room_empty_seconds'));
-        $cutoff = \Illuminate\Support\now()->subSeconds($seconds);
+        $systemSeconds = max(5, $seconds ?? $this->settings->int('temporary_room_empty_seconds'));
+        $userSeconds = $seconds !== null
+            ? $systemSeconds
+            : max(60, $this->settings->int('user_room_empty_expiry_minutes') * 60);
+        $systemCutoff = \Illuminate\Support\now()->subSeconds($systemSeconds);
+        $userCutoff = \Illuminate\Support\now()->subSeconds($userSeconds);
         $stale = \Illuminate\Support\now()->subMinutes(2);
         $deleted = 0;
 
         Room::query()
             ->where('type', 'temporary')
             ->where('status', 'active')
-            ->where('created_at', '<=', $cutoff)
-            ->where(function ($query) use ($cutoff) {
-                $query->whereNull('last_activity_at')->orWhere('last_activity_at', '<=', $cutoff);
+            ->where(function ($query) use ($systemCutoff, $userCutoff) {
+                $query->where(function ($system) use ($systemCutoff) {
+                    $system->whereNull('owner_id')
+                        ->where('created_at', '<=', $systemCutoff)
+                        ->where(function ($activity) use ($systemCutoff) {
+                            $activity->whereNull('last_activity_at')->orWhere('last_activity_at', '<=', $systemCutoff);
+                        });
+                })->orWhere(function ($user) use ($userCutoff) {
+                    $user->whereNotNull('owner_id')
+                        ->where('created_at', '<=', $userCutoff)
+                        ->where(function ($activity) use ($userCutoff) {
+                            $activity->whereNull('last_activity_at')->orWhere('last_activity_at', '<=', $userCutoff);
+                        });
+                });
             })
             ->orderBy('id')
             ->chunkById(100, function ($rooms) use (&$deleted, $stale) {

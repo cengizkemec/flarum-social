@@ -2,6 +2,16 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.14 - 2026-11-13
+
+- Added the **User-room categories (IDs)** setting under **ACP → Flarum Social → Rooms**. Members can only create rooms in the listed categories; leave it empty to allow any category.
+- Added a category selector to the member room creation modal. The selected category is validated on the server and stored on the room, so member rooms now appear under that category instead of always being uncategorized.
+- Categories reserved for member rooms are now visible in the Social sidebar, the forum Social menu and the Rooms page even when they contain no rooms yet.
+- Added a fixed information note under each member-room category: it explains that members can create their own room there and includes a **Create your own room** button. Guests see a login prompt instead.
+- The ACP category list now shows each category ID next to its name, making the new setting easier to fill in.
+- Fixed member rooms being removed after the short-lived temporary-room grace period (10 seconds by default). Member-owned rooms now use the configured **Delete empty temporary rooms after** value (30 minutes by default).
+- No database changes are required.
+
 ## 1.1.13 - 2026-11-13
 
 - **Pusher connection sharing.** When `flarum/pusher` is enabled and uses the same Pusher app, Social now reuses Flarum's existing Pusher socket through `app.pusher` instead of opening a second WebSocket connection. This halves the number of Pusher connections per user while Social is open.

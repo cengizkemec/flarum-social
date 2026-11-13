@@ -279,7 +279,7 @@ export default class AdminRoomManager {
                 ]),
               ])
             : m('div', { className: 'SocialAdminList-row' }, [
-                m('span', { className: 'SocialAdminList-main' }, [m('i', { className: category.icon || 'fas fa-folder' }), m('strong', {}, category.name), m('small', {}, rooms.filter((room: any) => room.categoryId === category.id).length + ' ' + app.translator.trans('cengizkemec-social.admin.rooms.rooms'))]),
+                m('span', { className: 'SocialAdminList-main' }, [m('i', { className: category.icon || 'fas fa-folder' }), m('strong', {}, category.name), m('small', {}, '#' + category.id + ' · ' + rooms.filter((room: any) => room.categoryId === category.id).length + ' ' + app.translator.trans('cengizkemec-social.admin.rooms.rooms'))]),
                 m('div', { className: 'SocialAdminList-actions' }, [
                   m(Button, {
                     className: 'Button Button--link Button--small SocialAdminMove',

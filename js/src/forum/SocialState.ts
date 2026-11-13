@@ -8,6 +8,7 @@ export interface SocialBootstrap {
   unreadNotifications: number;
   stats: any;
   categories: any[];
+  userRoomCategoryIds: number[];
   rooms: any[];
   channels: any[];
   onlineMembers: any[];
@@ -45,6 +46,10 @@ class SocialState {
 
   get categories(): any[] {
     return this.data?.categories || [];
+  }
+
+  get userRoomCategoryIds(): number[] {
+    return (this.data?.userRoomCategoryIds || []).map((id: any) => Number(id)).filter((id: number) => Number.isFinite(id));
   }
 
   get rooms(): any[] {

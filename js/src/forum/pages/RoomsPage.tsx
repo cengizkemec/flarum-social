@@ -27,7 +27,7 @@ export default class RoomsPage extends SocialPage {
         this.data = response.data;
         const params = m.parseQueryString(location.search.replace(/^\?/, ''));
         if (params.create && SocialState.can('createRoom')) {
-          this.openCreate();
+          this.openCreate(Number(params.category) || null);
         }
       })
       .catch((error: any) => (this.error = error.message))
@@ -37,13 +37,34 @@ export default class RoomsPage extends SocialPage {
       });
   }
 
-  openCreate(): void {
+  openCreate(categoryId: number | null = null): void {
+    const categories = this.userRoomCategories();
+    const selected = categories.length
+      ? Number(categories.some((category: any) => Number(category.id) === Number(categoryId)) ? categoryId : categories[0].id)
+      : null;
+
     app.modal.show(() => import('../components/RoomCreateModal'), {
+      categoryId: selected,
+      categories,
       oncreated: (room: any) => {
         this.load();
         m.route.set(roomUrl(room));
       },
     });
+  }
+
+  allowedCategoryIds(): number[] {
+    return (this.data?.userRoomCategoryIds || []).map((id: any) => Number(id));
+  }
+
+  userRoomCategories(): any[] {
+    const ids = this.allowedCategoryIds();
+
+    return (this.data?.categories || []).filter((category: any) => ids.includes(Number(category.id)));
+  }
+
+  canCreateInCategory(category: any): boolean {
+    return this.allowedCategoryIds().includes(Number(category.id));
   }
 
   grouped(categoryId: number | null): any[] {
@@ -80,6 +101,33 @@ export default class RoomsPage extends SocialPage {
     ]);
   }
 
+  categoryIntro(category: any): any {
+    if (!this.canCreateInCategory(category)) return null;
+
+    const canCreate = Boolean(this.data?.canCreateRoom);
+    const noteKey = canCreate
+      ? 'cengizkemec-social.forum.rooms.user_room_category_note'
+      : !SocialState.user
+      ? 'cengizkemec-social.forum.rooms.user_room_category_note_guest'
+      : 'cengizkemec-social.forum.rooms.user_room_category_note_forbidden';
+
+    return m('div', { className: 'SocialCategoryIntro' }, [
+      m('div', { className: 'SocialCategoryIntro-text' }, [
+        m('i', { className: 'fas fa-circle-info' }),
+        m('p', {}, app.translator.trans(noteKey)),
+      ]),
+      canCreate
+        ? m('button', { className: 'Button Button--primary Button--small', type: 'button', onclick: () => this.openCreate(category.id) }, [
+            m('i', { className: 'fas fa-plus' }),
+            ' ',
+            app.translator.trans('cengizkemec-social.forum.rooms.create_user_room'),
+          ])
+        : !SocialState.user
+        ? m('button', { className: 'Button Button--primary Button--small', type: 'button', onclick: () => promptLogin('room') }, app.translator.trans('cengizkemec-social.forum.rooms.login_to_create'))
+        : null,
+    ]);
+  }
+
   content(): any {
     if (this.loading) return m('div', { className: 'SocialLoading' }, m('i', { className: 'fas fa-spinner fa-spin' }));
 
@@ -93,7 +141,7 @@ export default class RoomsPage extends SocialPage {
     const rooms = this.data?.rooms || [];
     const categories = this.data?.categories || [];
     const channels = SocialState.channels || [];
-    const temporary = rooms.filter((room: any) => room.type === 'temporary');
+    const temporary = rooms.filter((room: any) => room.type === 'temporary' && !room.categoryId);
     const channelsFor = (categoryId: number | null) =>
       channels.filter((channel: any) => (categoryId === null ? !channel.categoryId : Number(channel.categoryId) === categoryId));
 
@@ -112,17 +160,20 @@ export default class RoomsPage extends SocialPage {
             m('div', { className: 'SocialRoomGrid' }, temporary.map((room) => this.roomCard(room))),
           ])
         : null,
-      categories.map((category: any) =>
-        this.grouped(category.id).length || channelsFor(category.id).length
-          ? m('section', { className: 'SocialPanel'}, [
-              m('div', { className: 'SocialSectionHead' }, [m('i', { className: category.icon || 'fas fa-folder' }), m('h2', {}, category.name), category.description ? m('span', { className: 'SocialSectionHead-text' }, category.description) : null]),
-              m('div', { className: 'SocialRoomGrid' }, [
-                ...this.grouped(category.id).map((room) => this.roomCard(room)),
-                ...channelsFor(category.id).map((channel) => this.channelCard(channel)),
-              ]),
-            ])
-          : null
-      ),
+      categories.map((category: any) => {
+        const hasContent = this.grouped(category.id).length || channelsFor(category.id).length;
+
+        if (!hasContent && !this.canCreateInCategory(category)) return null;
+
+        return m('section', { className: 'SocialPanel' }, [
+          m('div', { className: 'SocialSectionHead' }, [m('i', { className: category.icon || 'fas fa-folder' }), m('h2', {}, category.name), category.description ? m('span', { className: 'SocialSectionHead-text' }, category.description) : null]),
+          this.categoryIntro(category),
+          m('div', { className: 'SocialRoomGrid' }, [
+            ...this.grouped(category.id).map((room) => this.roomCard(room)),
+            ...channelsFor(category.id).map((channel) => this.channelCard(channel)),
+          ]),
+        ]);
+      }),
       this.grouped(null).length || channelsFor(null).length
         ? m('section', { className: 'SocialPanel' }, [
             m('div', { className: 'SocialSectionHead' }, [m('i', { className: 'fas fa-door-open' }), m('h2', {}, app.translator.trans('cengizkemec-social.forum.rooms.uncategorized'))]),
@@ -132,7 +183,9 @@ export default class RoomsPage extends SocialPage {
             ]),
           ])
         : null,
-      !rooms.length ? m('div', { className: 'SocialEmpty' }, [m('i', { className: 'fas fa-headset' }), m('h3', {}, app.translator.trans('cengizkemec-social.forum.rooms.empty')), m('p', {}, app.translator.trans('cengizkemec-social.forum.rooms.empty_text'))]) : null,
+      !rooms.length && !categories.some((category: any) => this.canCreateInCategory(category))
+        ? m('div', { className: 'SocialEmpty' }, [m('i', { className: 'fas fa-headset' }), m('h3', {}, app.translator.trans('cengizkemec-social.forum.rooms.empty')), m('p', {}, app.translator.trans('cengizkemec-social.forum.rooms.empty_text'))])
+        : null,
     ]);
   }
 }

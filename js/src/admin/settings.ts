@@ -124,6 +124,7 @@ export const SETTING_GROUPS: Record<string, SettingItem[]> = {
     { key: 'user_room_allow_private' },
     { key: 'user_room_allow_invites' },
     { key: 'user_room_allowed_groups', type: 'text' },
+    { key: 'user_room_category_ids', type: 'text', help: true },
   ],
   messages: [
     { key: 'message_max_length', type: 'number', min: 100, max: 10000 },

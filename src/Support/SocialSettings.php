@@ -123,6 +123,7 @@ class SocialSettings
         'user_room_allow_private' => true,
         'user_room_allow_invites' => true,
         'user_room_allowed_groups' => '',
+        'user_room_category_ids' => '',
 
         'message_max_length' => 2000,
         'message_history_per_page' => 30,

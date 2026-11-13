@@ -50,8 +50,21 @@ class BootstrapController extends AbstractSocialController
         $categories = [];
         $rooms = [];
         $channels = [];
+        $userRoomCategoryIds = [];
 
         if ($canView) {
+            $rawCategoryIds = (string) $this->settings->get('user_room_category_ids');
+            $allowedCategoryIds = array_values(array_unique(array_filter(array_map('intval', preg_split('/[,\s]+/', $rawCategoryIds) ?: []))));
+
+            if ($allowedCategoryIds) {
+                $userRoomCategoryIds = \CengizKemec\Social\Models\RoomCategory::query()
+                    ->whereIn('id', $allowedCategoryIds)
+                    ->orderBy('sort_order')
+                    ->pluck('id')
+                    ->map(fn ($id) => (int) $id)
+                    ->values()
+                    ->all();
+            }
             $rooms = Room::query()
                 ->where('status', 'active')
                 ->orderBy('sort_order')
@@ -341,6 +354,7 @@ class BootstrapController extends AbstractSocialController
             'unreadNotifications' => $this->notifier->unreadCount($actor),
             'stats' => $stats,
             'categories' => $categories,
+            'userRoomCategoryIds' => $userRoomCategoryIds,
             'rooms' => $roomData,
             'channels' => $channels,
             'onlineMembers' => $onlineMembers,
