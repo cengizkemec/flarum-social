@@ -9,14 +9,12 @@ import ForumVoiceWidget from './components/ForumVoiceWidget';
 import ForumSocialMenu from './components/ForumSocialMenu';
 import userHoverPreview from './components/UserHoverPreview';
 import { installNativeAuthBridge } from './auth';
-import { installDesktopBridge } from './desktopBridge';
 import { installProfileIntegration } from './profileIntegration';
 
 export { default as extend } from './extend';
 
 app.initializers.add('cengizkemec-social', () => {
   installNativeAuthBridge();
-  installDesktopBridge();
   installProfileIntegration();
 
   extend(HeaderPrimary.prototype, 'items', (items: any) => {

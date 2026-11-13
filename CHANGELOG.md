@@ -2,6 +2,12 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.16 - 2026-11-13
+
+- Removed the temporary **WTTRDesktop** bridge from Flarum Social. The War Thunder Türkiye desktop application is a separate project and does not modify this extension.
+- Social voice, rooms, feed, categories and realtime behavior are unchanged.
+- No database changes are required.
+
 ## 1.1.15 - 2026-11-13
 
 - Added the **WTTRDesktop** bridge for the War Thunder Türkiye Windows application. The bridge exposes `openAuth()`, `setPTT()`, `getVoiceSettings()` and `getState()` on the page.
