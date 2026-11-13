@@ -2,6 +2,14 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.15 - 2026-11-13
+
+- Added the **WTTRDesktop** bridge for the War Thunder Türkiye Windows application. The bridge exposes `openAuth()`, `setPTT()`, `getVoiceSettings()` and `getState()` on the page.
+- **Direct push-to-talk control.** `WTTRDesktop.setPTT(true/false)` now enables or disables the current Social voice microphone directly through `voiceSession.setPushToTalkActive()`. The desktop app no longer needs to simulate keyboard events.
+- **Integrated authentication.** `WTTRDesktop.openAuth('login'|'register')` opens the native login or registration modal, so the desktop app can reuse the existing session and security verification.
+- The bridge only exposes actions already available on the page; no additional permissions or data are exposed.
+- No database changes are required.
+
 ## 1.1.14 - 2026-11-13
 
 - Added the **User-room categories (IDs)** setting under **ACP → Flarum Social → Rooms**. Members can only create rooms in the listed categories; leave it empty to allow any category.

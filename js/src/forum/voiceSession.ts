@@ -584,6 +584,21 @@ class VoiceSession {
     }
   }
 
+  setPushToTalkActive(active: boolean): void {
+    if (!this.connected || this.manualMuted || this.deafened) {
+      this.pttActive = false;
+      this.disableMic().catch(() => {});
+      return;
+    }
+
+    this.pttActive = active;
+
+    if (active) this.enableMic().catch(() => {});
+    else this.disableMic().catch(() => {});
+
+    m.redraw();
+  }
+
   installPtt(): void {
     this.removePtt();
 
