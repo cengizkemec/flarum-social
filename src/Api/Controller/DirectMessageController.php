@@ -6,7 +6,7 @@ use CengizKemec\Social\Media\MediaManager;
 use CengizKemec\Social\Models\DirectConversation;
 use CengizKemec\Social\Models\DirectMessage;
 use CengizKemec\Social\Models\DirectParticipant;
-use CengizKemec\Social\Realtime\Centrifugo;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\ContentFormatter;
 use CengizKemec\Social\Support\Notifier;
@@ -30,7 +30,7 @@ class DirectMessageController extends AbstractSocialController
         protected ContentFormatter $formatter,
         protected Notifier $notifier,
         protected RateLimit $rateLimit,
-        protected Centrifugo $realtime
+        protected FlarumRealtime $realtime
     ) {
         parent::__construct($access, $settings, $translator);
     }

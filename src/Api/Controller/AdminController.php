@@ -17,6 +17,7 @@ use CengizKemec\Social\Models\Report;
 use CengizKemec\Social\Models\Room;
 use CengizKemec\Social\Models\RoomParticipant;
 use CengizKemec\Social\Models\UserPreference;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\ModerationLogService;
 use CengizKemec\Social\Support\Notifier;
@@ -38,7 +39,8 @@ class AdminController extends AbstractSocialController
         protected MediaStorage $storage,
         protected CleanupService $cleanup,
         protected Notifier $notifier,
-        protected ModerationLogService $logs
+        protected ModerationLogService $logs,
+        protected FlarumRealtime $realtime
     ) {
         parent::__construct($access, $settings, $translator);
     }
@@ -90,8 +92,9 @@ class AdminController extends AbstractSocialController
                     'open' => Report::query()->where('status', Report::STATUS_OPEN)->count(),
                 ],
                 'realtime' => [
-                    'enabled' => $this->settings->bool('realtime_enabled'),
-                    'configured' => $this->settings->get('centrifugo_url') !== '' && $this->settings->get('centrifugo_token_hmac_secret') !== '',
+                    'enabled' => $this->realtime->enabled(),
+                    'configured' => $this->realtime->enabled(),
+                    'driver' => $this->realtime->driver(),
                 ],
                 'livekit' => [
                     'configured' => $this->settings->get('livekit_url') !== '' && $this->settings->get('livekit_api_key') !== '',

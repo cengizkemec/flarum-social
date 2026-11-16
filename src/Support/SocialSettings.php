@@ -2,6 +2,7 @@
 
 namespace CengizKemec\Social\Support;
 
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use Flarum\Settings\SettingsRepositoryInterface;
 
 /**
@@ -137,13 +138,7 @@ class SocialSettings
         'dm_rate_limit' => 20,
         'dm_allowed_groups' => '',
 
-        'realtime_enabled' => false,
-        'realtime_driver' => 'centrifugo',
-        'centrifugo_url' => '',
-        'centrifugo_api_url' => '',
-        'centrifugo_api_key' => '',
-        'centrifugo_token_hmac_secret' => '',
-        'realtime_fallback_seconds' => 15,
+        'realtime_driver' => 'flarum',
 
         'reports_enabled' => true,
         'auto_hide_report_threshold' => 0,
@@ -157,8 +152,10 @@ class SocialSettings
         'notify_message' => true,
     ];
 
-    public function __construct(protected SettingsRepositoryInterface $settings)
-    {
+    public function __construct(
+        protected SettingsRepositoryInterface $settings,
+        protected FlarumRealtime $realtime
+    ) {
     }
 
     public function get(string $key, mixed $fallback = null): mixed
@@ -214,13 +211,7 @@ class SocialSettings
      */
     public function publicConfig(): array
     {
-        $realtimeDriver = $this->get('realtime_driver') ?: 'centrifugo';
-        $pusherReady = $this->settings->get('flarum-pusher.app_id')
-            && $this->settings->get('flarum-pusher.app_key')
-            && $this->settings->get('flarum-pusher.app_secret');
-        $centrifugoReady = $this->get('centrifugo_url') !== '' && $this->get('centrifugo_token_hmac_secret') !== '';
-        $realtimeEnabled = $this->bool('realtime_enabled')
-            && ($realtimeDriver === 'pusher' ? $pusherReady : $centrifugoReady);
+        $realtimeEnabled = $this->realtime->enabled();
 
         return [
             'enabled' => $this->bool('enabled'),
@@ -234,7 +225,7 @@ class SocialSettings
                 'stories' => $this->bool('enable_stories'),
                 'userRooms' => $this->bool('enable_user_rooms'),
                 'friends' => $this->bool('enable_friends'),
-                'realtime' => $this->bool('realtime_enabled') && $this->get('centrifugo_url') !== '',
+                'realtime' => $realtimeEnabled,
                 'livekit' => $this->bool('enable_voice') && $this->get('livekit_url') !== '',
             ],
             'appearance' => [
@@ -295,12 +286,13 @@ class SocialSettings
             ],
             'realtime' => [
                 'enabled' => $realtimeEnabled,
-                'driver' => $realtimeDriver,
-                'url' => $realtimeDriver === 'centrifugo' ? $this->get('centrifugo_url') : '',
-                'pusherKey' => $this->settings->get('flarum-pusher.app_key') ?: '',
-                'pusherCluster' => $this->settings->get('flarum-pusher.app_cluster') ?: '',
-                'pusherHost' => $this->settings->get('flarum-pusher.server_hostname') ?: '',
-                'fallbackSeconds' => max(5, $this->int('realtime_fallback_seconds')),
+                'driver' => $this->realtime->driver(),
+                'pusherKey' => $this->realtime->driver() === FlarumRealtime::DRIVER_PUSHER ? ($this->settings->get('flarum-pusher.app_key') ?: '') : '',
+                'pusherCluster' => $this->realtime->driver() === FlarumRealtime::DRIVER_PUSHER ? ($this->settings->get('flarum-pusher.app_cluster') ?: '') : '',
+                'pusherHost' => $this->realtime->driver() === FlarumRealtime::DRIVER_PUSHER ? ($this->settings->get('flarum-pusher.server_hostname') ?: '') : '',
+                // Flarum owns the websocket and the retry behaviour. This is
+                // only the refresh interval used when realtime is unavailable.
+                'fallbackSeconds' => 30,
             ],
             'limits' => [
                 'messageMaxLength' => $this->int('message_max_length'),

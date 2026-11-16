@@ -40,7 +40,7 @@ Flarum'un yerel mesajlaşma altyapısıyla uyumlu özel mesajlar; 24 saatlik hik
 Kapak görseli, biyografi, takipçi/takip listeleri, arkadaşlık istekleri, rol renkleri, çevrimiçi durumu ve son gönderiler.
 
 ### Bildirimler
-Uygulama içi bildirimler, isteğe bağlı Centrifugo ile gerçek zamanlı iletim ve ekran paylaşımı gibi olaylar için masaüstü bildirimleri.
+Uygulama içi bildirimler, isteğe bağlı Flarum Realtime veya Pusher ile gerçek zamanlı iletim ve ekran paylaşımı gibi olaylar için masaüstü bildirimleri.
 
 ### Mobil deneyim
 Mobil alt gezinme çubuğu, dokunmatik uyumlu menü, tam ekran medya görüntüleyici ve küçük ekranlarda düzenli yerleşim.
@@ -52,7 +52,7 @@ Flarum ACP içinde tam yönetim paneli: oda ve kategori yöneticisi, oda sırala
 - **FoF Upload** ile isteğe bağlı ortak medya depolama
 - **FoF Links**, **FoF News Widget**, **FoF Profile Cover** ve **FoF Widgets** desteği
 - **flarum/messages** ile yerel mesajlaşma
-- **Centrifugo** ile gerçek zamanlı kanallar
+- **Flarum Realtime** (varsayılan) veya **Pusher** ile gerçek zamanlı kanallar
 - **S3 uyumlu** medya depolama
 - **PWA** ve mobil kurulum desteği
 - Türkçe ve İngilizce dil desteği
@@ -80,7 +80,7 @@ Ardından **ACP → Flarum Social** bölümünden eklentiyi etkinleştirip gerek
 - Flarum 2.0 veya üzeri
 - PHP 8.3 veya üzeri
 - Sesli odalar ve ekran paylaşımı için **LiveKit** sunucusu
-- İsteğe bağlı: Centrifugo, S3 uyumlu depolama, FoF Upload
+- İsteğe bağlı: Flarum Realtime veya Pusher, S3 uyumlu depolama, FoF Upload
 
 ## Kimler için?
 

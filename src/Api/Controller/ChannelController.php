@@ -6,7 +6,7 @@ use CengizKemec\Social\Media\MediaManager;
 use CengizKemec\Social\Models\Message;
 use CengizKemec\Social\Models\MessageRead;
 use CengizKemec\Social\Models\TextChannel;
-use CengizKemec\Social\Realtime\Centrifugo;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\ContentFormatter;
 use CengizKemec\Social\Support\ContentParser;
@@ -30,7 +30,7 @@ class ChannelController extends AbstractSocialController
         protected ContentParser $parser,
         protected ContentFormatter $formatter,
         protected RateLimit $rateLimit,
-        protected Centrifugo $realtime
+        protected FlarumRealtime $realtime
     ) {
         parent::__construct($access, $settings, $translator);
     }

@@ -2,6 +2,16 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.18 - 2026-11-16
+
+- Removed Social's own Centrifugo configuration. The old realtime enable switch, driver switch to Centrifugo, WebSocket/API URLs, API key, HMAC secret and polling interval settings are gone from the ACP.
+- **Flarum Realtime is now the default.** When `flarum/realtime` is enabled, Social shares Flarum's WebSocket connection and publishes room, channel, DM, comment and story updates through Flarum's own realtime daemon. No separate realtime server or credentials are needed.
+- **Pusher remains available as an option.** Select **Pusher** as the realtime driver to keep using an existing `flarum/pusher` app. Social reuses its credentials and shared socket when available.
+- Social's private `private-social-*` channels are still authorized by Social's own post, room, channel and DM permissions through `POST /api/social/websocket/auth`. Flarum's own channels keep using their extension auth endpoints.
+- Removed the old Centrifugo token endpoint and the bundled `centrifuge` JavaScript dependency. Polling remains the automatic fallback when neither realtime transport is available.
+- Updated the English and Turkish ACP texts and the README, installation, configuration, API and security documentation.
+- No database changes are required.
+
 ## 1.1.17 - 2026-11-13
 
 - Added **URL slugs**, **Font Awesome icons**, creation timestamps, group permissions and full edit support for text channels in the ACP. Existing channels receive a generated slug during migration.

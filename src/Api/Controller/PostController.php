@@ -5,7 +5,7 @@ namespace CengizKemec\Social\Api\Controller;
 use CengizKemec\Social\Media\MediaManager;
 use CengizKemec\Social\Models\Comment;
 use CengizKemec\Social\Models\Post;
-use CengizKemec\Social\Realtime\Centrifugo;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\ContentParser;
 use CengizKemec\Social\Support\PostPresenter;
@@ -27,7 +27,7 @@ class PostController extends AbstractSocialController
         protected MediaManager $media,
         protected ContentParser $parser,
         protected RateLimit $rateLimit,
-        protected Centrifugo $realtime
+        protected FlarumRealtime $realtime
     ) {
         parent::__construct($access, $settings, $translator);
     }

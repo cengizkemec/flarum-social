@@ -3,7 +3,7 @@ import Button from 'flarum/common/components/Button';
 import SocialState from '../SocialState';
 import { del, get, patch, post } from '../../common/api';
 import { Avatar, formatBody, handleApiError, timeAgo } from '../utils';
-import { subscribeRealtime } from '../realtime';
+import { isRealtimeConnected, subscribeRealtime } from '../realtime';
 import MediaGallery from './MediaGallery';
 
 export default class DirectThread {
@@ -34,10 +34,10 @@ export default class DirectThread {
       m.redraw();
     });
 
-    if (!SocialState.config.realtime?.enabled) {
-      const seconds = SocialState.config.realtime?.fallbackSeconds || 20;
-      this.timer = window.setInterval(() => this.poll(), seconds * 1000);
-    }
+    const seconds = SocialState.config.realtime?.fallbackSeconds || 30;
+    this.timer = window.setInterval(() => {
+      if (!isRealtimeConnected()) this.poll();
+    }, seconds * 1000);
   }
 
   onremove(): void {

@@ -163,8 +163,7 @@ return [
         ->post('/social/friends/{id}/block', 'social.friends.block', Controller\FriendshipController::class)
         ->delete('/social/friends/{id}/block', 'social.friends.unblock', Controller\FriendshipController::class)
 
-        ->post('/social/realtime/token', 'social.realtime.token', Controller\RealtimeController::class)
-        ->post('/social/realtime/auth', 'social.realtime.auth', Controller\RealtimeController::class)
+        ->post('/social/websocket/auth', 'social.websocket.auth', Controller\WebsocketController::class)
         ->post('/social/livekit/webhook', 'social.voice.webhook', Controller\LiveKitWebhookController::class)
 
         ->get('/social/admin/overview', 'social.admin.overview', Controller\AdminController::class)

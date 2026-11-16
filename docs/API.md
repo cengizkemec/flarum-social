@@ -35,7 +35,7 @@ All endpoints are under `/api/social`. Browser requests use Flarum's session coo
 | GET/POST | `/social/dm/...` | Fallback direct messages |
 | GET | `/social/notifications` | Notifications |
 | GET | `/social/bookmarks` | Bookmarks |
-| POST | `/social/realtime/token` | Optional Centrifugo token |
+| POST | `/social/websocket/auth` | Sign a private Social channel for Flarum Realtime or Pusher |
 
 Admin endpoints are under `/api/social/admin` and require a Flarum administrator.
 

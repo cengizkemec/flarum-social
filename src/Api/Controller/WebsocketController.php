@@ -5,67 +5,46 @@ namespace CengizKemec\Social\Api\Controller;
 use CengizKemec\Social\Models\Post;
 use CengizKemec\Social\Models\Room;
 use CengizKemec\Social\Models\TextChannel;
-use CengizKemec\Social\Realtime\Centrifugo;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\SocialSettings;
 use Flarum\Locale\TranslatorInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class RealtimeController extends AbstractSocialController
+/**
+ * Signs Social's private channels for Flarum's realtime websocket.
+ *
+ * Flarum's own /api/websocket/auth endpoint only knows about Flarum channels.
+ * Social uses the same socket and app secret, but checks Social's post, room,
+ * channel and DM permissions here before returning a signature.
+ */
+class WebsocketController extends AbstractSocialController
 {
     public function __construct(
         Access $access,
         SocialSettings $settings,
         TranslatorInterface $translator,
-        protected Centrifugo $realtime
+        protected FlarumRealtime $realtime
     ) {
         parent::__construct($access, $settings, $translator);
     }
 
     protected function dispatch(ServerRequestInterface $request): ResponseInterface
     {
-        if ($this->routeName($request) === 'social.realtime.auth') {
-            return $this->authorize($request);
-        }
-
-        $actor = $this->actor($request);
-        $actor->assertRegistered();
-
-        if (! $this->realtime->enabled()) {
-            return $this->json(['errors' => [[
-                'status' => '503',
-                'code' => 'realtime_disabled',
-                'detail' => $this->translator->trans('cengizkemec-social.api.errors.realtime_disabled'),
-            ]]], 503);
-        }
-
-        $channel = (string) ($request->getQueryParams()['channel'] ?? $this->body($request)['channel'] ?? '');
-
-        if (! $this->allowed($channel, $request)) {
-            return $this->forbidden('realtime_channel_forbidden');
-        }
-
-        if ($this->realtime->driver() === 'pusher') {
-            return $this->json(['data' => [
-                'driver' => 'pusher',
-                'key' => $this->settings->get('flarum-pusher.app_key'),
-                'cluster' => $this->settings->get('flarum-pusher.app_cluster'),
-                'host' => $this->settings->get('flarum-pusher.server_hostname'),
-                'channel' => $this->realtime->mapChannel($channel),
-            ]]);
-        }
-
-        return $this->json(['data' => $this->realtime->tokens($actor, $channel)]);
+        return $this->authorize($request);
     }
 
     protected function authorize(ServerRequestInterface $request): ResponseInterface
     {
         $actor = $this->actor($request);
-        $actor->assertRegistered();
 
-        if (! $this->realtime->enabled() || $this->realtime->driver() !== 'pusher') {
-            return $this->forbidden('realtime_channel_forbidden');
+        if (! $this->realtime->enabled()) {
+            return $this->json(['errors' => [[
+                'status' => '503',
+                'code' => 'websocket_disabled',
+                'detail' => $this->translator->trans('cengizkemec-social.api.errors.websocket_disabled'),
+            ]]], 503);
         }
 
         $body = $request->getParsedBody();
@@ -80,17 +59,17 @@ class RealtimeController extends AbstractSocialController
         $channel = $this->realtime->logicalChannel($mappedChannel);
 
         if ($socketId === '' || $channel === null || ! $this->allowed($channel, $request)) {
-            return $this->forbidden('realtime_channel_forbidden');
+            return $this->forbidden('websocket_channel_forbidden');
         }
 
-        $auth = $this->realtime->pusherAuth($socketId, $mappedChannel);
+        $auth = $this->realtime->authorize($socketId, $mappedChannel);
 
         if (! $auth) {
             return $this->json([
                 'errors' => [[
                     'status' => '503',
-                    'code' => 'pusher_auth_failed',
-                    'detail' => $this->translator->trans('cengizkemec-social.api.errors.realtime_disabled'),
+                    'code' => 'websocket_auth_failed',
+                    'detail' => $this->translator->trans('cengizkemec-social.api.errors.websocket_disabled'),
                 ]],
             ], 503);
         }

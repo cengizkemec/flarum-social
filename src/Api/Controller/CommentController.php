@@ -5,7 +5,7 @@ namespace CengizKemec\Social\Api\Controller;
 use CengizKemec\Social\Media\MediaManager;
 use CengizKemec\Social\Models\Comment;
 use CengizKemec\Social\Models\Post;
-use CengizKemec\Social\Realtime\Centrifugo;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\CommentPresenter;
 use CengizKemec\Social\Support\ContentParser;
@@ -28,7 +28,7 @@ class CommentController extends AbstractSocialController
         protected ContentParser $parser,
         protected Notifier $notifier,
         protected RateLimit $rateLimit,
-        protected Centrifugo $realtime
+        protected FlarumRealtime $realtime
     ) {
         parent::__construct($access, $settings, $translator);
     }

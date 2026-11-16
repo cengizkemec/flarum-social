@@ -2,7 +2,7 @@ import app from 'flarum/forum/app';
 import SocialState from '../SocialState';
 import { get, post as apiPost } from '../../common/api';
 import { handleApiError, promptLogin } from '../utils';
-import { subscribeRealtime } from '../realtime';
+import { isRealtimeConnected, subscribeRealtime } from '../realtime';
 import CommentCard from './CommentCard';
 import Button from 'flarum/common/components/Button';
 
@@ -37,10 +37,10 @@ export default class CommentSection {
       m.redraw();
     });
 
-    if (!SocialState.config.realtime?.enabled) {
-      const seconds = SocialState.config.realtime?.fallbackSeconds || 20;
-      this.timer = window.setInterval(() => this.load(true), seconds * 1000);
-    }
+    const seconds = SocialState.config.realtime?.fallbackSeconds || 30;
+    this.timer = window.setInterval(() => {
+      if (!isRealtimeConnected()) this.load(true);
+    }, seconds * 1000);
   }
 
   onremove(): void {

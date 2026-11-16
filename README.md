@@ -69,7 +69,7 @@ More screenshots are in [docs/screenshots](docs/screenshots). Release 1.1.5 note
 - MySQL/MariaDB, PostgreSQL or SQLite
 - Node.js only when rebuilding the bundled JavaScript
 - Optional: a LiveKit server for voice rooms
-- Optional: Pusher via `flarum/pusher`, or Centrifugo, for realtime chat
+- Optional: Flarum's bundled `flarum/realtime` daemon (recommended) or `flarum/pusher` for live chat and room updates
 - Optional: S3-compatible storage for media
 - Optional: reuse `fof/upload` adapters and its media library for Social uploads
 
@@ -130,6 +130,12 @@ When `fof/forum-widgets-core` is enabled, widgets registered for the forum index
 ## Messages
 
 When `flarum/messages` is enabled, Social renders Flarum's dialogs, message stream, composer and read state inside the Social messages layout. Flarum keeps ownership of permissions, notifications and realtime delivery. The built-in Social DM fallback remains available when the official extension is not enabled.
+
+## Realtime
+
+Social uses Flarum's own realtime transport by default. Enable the bundled `flarum/realtime` extension, run its `php flarum realtime:serve` daemon and a queue worker, then keep **Realtime driver** set to **Flarum Realtime** in **ACP → Flarum Social → Messages**. Social shares Flarum's WebSocket connection and signs its private `private-social-*` channels through Social's own post, room, channel and DM permissions.
+
+If your forum uses `flarum/pusher` instead, choose **Pusher** as the driver. Social reuses the existing Pusher app credentials and, when available, the existing Pusher socket. If neither transport is enabled, Social falls back to periodic refresh.
 
 ## Audit log
 

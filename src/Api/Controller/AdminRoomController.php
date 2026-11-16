@@ -11,7 +11,7 @@ use CengizKemec\Social\Models\RoomInvitation;
 use CengizKemec\Social\Models\RoomModerator;
 use CengizKemec\Social\Models\RoomParticipant;
 use CengizKemec\Social\Models\TextChannel;
-use CengizKemec\Social\Realtime\Centrifugo;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\ChannelSlug;
 use CengizKemec\Social\Support\ModerationLogService;
@@ -30,7 +30,7 @@ class AdminRoomController extends AbstractSocialController
         SocialSettings $settings,
         TranslatorInterface $translator,
         protected MediaManager $media,
-        protected Centrifugo $realtime,
+        protected FlarumRealtime $realtime,
         protected ModerationLogService $logs,
         protected LiveKit $livekit
     ) {

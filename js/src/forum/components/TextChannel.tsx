@@ -3,7 +3,7 @@ import Button from 'flarum/common/components/Button';
 import SocialState from '../SocialState';
 import { del, get, patch, post, uploadFile } from '../../common/api';
 import { Avatar, formatBody, handleApiError, promptLogin, timeAgo } from '../utils';
-import { subscribeRealtime } from '../realtime';
+import { isRealtimeConnected, subscribeRealtime } from '../realtime';
 import MediaGallery from './MediaGallery';
 
 export default class TextChannel {
@@ -53,10 +53,10 @@ export default class TextChannel {
       m.redraw();
     });
 
-    if (!SocialState.config.realtime?.enabled) {
-      const seconds = SocialState.config.realtime?.fallbackSeconds || 20;
-      this.pollTimer = window.setInterval(() => this.poll(), seconds * 1000);
-    }
+    const seconds = SocialState.config.realtime?.fallbackSeconds || 30;
+    this.pollTimer = window.setInterval(() => {
+      if (!isRealtimeConnected()) this.poll();
+    }, seconds * 1000);
   }
 
   onupdate(vnode: any): void {

@@ -45,12 +45,12 @@ Browsers block screen capture on insecure origins. Use `https://` in production;
 
 ## Realtime
 
-Social supports two realtime drivers in **ACP → Flarum Social → Messages and realtime**:
+Social uses Flarum's own realtime transport and has no separate realtime server or credential fields. Choose the transport in **ACP → Flarum Social → Messages → Realtime driver**:
 
-- **Pusher** reuses the existing `flarum/pusher` app key, secret, cluster and optional host. This is the recommended option when Flarum's Pusher extension is already configured, because it needs no self-hosted realtime server or tunnel.
-- **Centrifugo** uses a self-hosted Centrifugo server. Fill the WebSocket URL, HTTP API URL, API key and token HMAC secret.
+- **Flarum Realtime (default)** uses the bundled `flarum/realtime` extension. Keep the extension enabled and run its `php flarum realtime:serve` daemon together with a queue worker. Social shares the forum's WebSocket connection.
+- **Pusher (optional)** reuses an existing `flarum/pusher` app key, secret, cluster and optional host. Use this only when the forum already runs `flarum/pusher`; the two realtime extensions conflict with each other.
 
-With Pusher, Social subscribes to private channels such as `private-social-room-1` and authorizes them through `POST /api/social/realtime/auth`. The same Social post, room, channel and direct-message permissions are checked before the channel is signed, so private content is not exposed through public channels. If realtime is disabled or unavailable, chat falls back to periodic refresh after the configured interval.
+Social subscribes to private channels such as `private-social-room-1` and signs them through `POST /api/social/websocket/auth`. The same Social post, room, channel and direct-message permissions are checked before the channel is signed, so private content is not exposed through public channels. If neither transport is available, chat falls back to periodic refresh.
 
 ## Messages
 

@@ -10,7 +10,7 @@ This guide covers a production Flarum 2.0 installation, a local development chec
 - HTTPS in production. Browsers only allow microphone and screen capture on secure origins, except for `localhost`.
 - Node.js 20+ only when rebuilding the bundled JavaScript from source.
 - Optional: a LiveKit server for voice and screen sharing.
-- Optional: Centrifugo for realtime channel and direct-message delivery.
+- Optional: Flarum's bundled `flarum/realtime` daemon (recommended) or `flarum/pusher` for live channel, direct-message and room updates.
 - Optional: S3-compatible object storage for media.
 
 ## Composer installation
@@ -142,9 +142,19 @@ Screen sharing requires a secure origin in production. On `http://localhost` bro
 4. Clicking the video opens full screen.
 5. Turning off the local preview does not mute the shared audio for other listeners.
 
-## Centrifugo (optional)
+## Realtime (optional)
 
-Without Centrifugo, Social falls back to periodic refresh for channel messages and direct messages. To enable realtime delivery, install Centrifugo and enter its WebSocket URL, HTTP API URL, API key and HMAC secret in **Administration -> Flarum Social -> Messages & realtime**. Keep the API key and HMAC secret server-side.
+Social uses Flarum's realtime transport and does not need a separate Centrifugo server.
+
+### Flarum Realtime (recommended)
+
+Enable the bundled `flarum/realtime` extension, then run its daemon and a queue worker as described in the [Flarum Realtime documentation](https://docs.flarum.org/extensions/realtime/). In **Administration -> Flarum Social -> Messages**, keep **Realtime driver** set to **Flarum Realtime**. Social shares Flarum's WebSocket connection and signs its private channels through Social's own permission checks.
+
+### Pusher
+
+If the forum already uses `flarum/pusher`, enable it and enter its app credentials as usual, then select **Pusher** as the Social realtime driver. Social reuses the existing app and, when available, the existing Pusher socket. Do not enable `flarum/realtime` and `flarum/pusher` together; the realtime extension conflicts with it.
+
+Without either transport, Social falls back to periodic refresh for channel messages and direct messages.
 
 ## Scheduled cleanup
 

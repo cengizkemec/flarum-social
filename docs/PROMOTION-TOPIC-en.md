@@ -56,7 +56,7 @@ Profile covers, bios, followers, following, friend requests, role colours, onlin
 
 ### Notifications
 
-In-app notifications, optional real-time delivery through Centrifugo, and desktop notifications for events such as screen sharing.
+In-app notifications, optional real-time delivery through Flarum Realtime or Pusher, and desktop notifications for events such as screen sharing.
 
 ### Mobile experience
 
@@ -75,7 +75,7 @@ A complete ACP experience: room and category manager, drag-free up/down ordering
 - **FoF Upload** optional shared media storage
 - **FoF Links**, **FoF News Widget**, **FoF Profile Cover** and **FoF Widgets** support
 - **flarum/messages** for native direct messages
-- **Centrifugo** for real-time channels
+- **Flarum Realtime** (default) or **Pusher** for real-time channels
 - **S3-compatible** media storage
 - **PWA** and mobile installation support
 - English and Turkish localization
@@ -92,7 +92,7 @@ A complete ACP experience: room and category manager, drag-free up/down ordering
 - Flarum 2.0 or newer
 - PHP 8.3 or newer
 - A LiveKit server for voice rooms and screen sharing
-- Optional: Centrifugo, S3-compatible storage, FoF Upload
+- Optional: Flarum Realtime or Pusher, S3-compatible storage, FoF Upload
 
 ## Installation
 

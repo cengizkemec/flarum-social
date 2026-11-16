@@ -1,49 +1,62 @@
 import app from 'flarum/forum/app';
 import SocialState from './SocialState';
-import { post } from '../common/api';
 
-type PusherEntry = {
-  channel: any;
+type RealtimeEntry = {
+  logical: string;
   callbacks: Set<(data: any) => void>;
+  channel: any | null;
 };
 
-const pusherChannels = new Map<string, PusherEntry>();
-const sharedSockets = new WeakSet<object>();
-const SOCIAL_AUTH_PATH = '/social/realtime/auth';
-const IDLE_DISCONNECT_MS = 15000;
+type Driver = 'flarum' | 'pusher';
 
-let pusher: any = null;
-let pusherLoading: Promise<any> | null = null;
+const entries = new Map<string, RealtimeEntry>();
+const authorizedSockets = new WeakSet<object>();
+const SOCIAL_AUTH_PATH = '/social/websocket/auth';
+const SOCKET_CHECK_MS = 2000;
+const AUTH_RETRY_MS = 8000;
+
+let socket: any = null;
+let sharedPusherSocket: any = null;
+let ownPusher: any = null;
+let ownPusherLoading: Promise<any | null> | null = null;
 let ownsPusher = false;
-let idleTimer: number | null = null;
+let connecting = false;
+let pusherWaitSince: number | null = null;
+let socketTimer: number | null = null;
+const retryTimers = new Map<string, number>();
 
 function realtimeConfig(): any {
   return SocialState.config.realtime || {};
+}
+
+function enabled(): boolean {
+  return Boolean(realtimeConfig().enabled);
+}
+
+function driver(): Driver {
+  return realtimeConfig().driver === 'pusher' ? 'pusher' : 'flarum';
 }
 
 function apiUrl(): string {
   return app.forum.attribute<string>('apiUrl');
 }
 
-function mapPusherChannel(channel: string): string {
+function mapChannel(channel: string): string {
   return 'private-'.concat(channel.replace(/:/g, '-'));
+}
+
+function flarumSocket(): any | null {
+  const candidate = (app as any).websocket;
+
+  return candidate && typeof candidate.subscribe === 'function' ? candidate : null;
 }
 
 function sameConfigValue(a: any, b: any): boolean {
   return String(a ?? '') === String(b ?? '');
 }
 
-function clearIdleTimer(): void {
-  if (idleTimer !== null) {
-    window.clearTimeout(idleTimer);
-    idleTimer = null;
-  }
-}
-
 function canShareFlarumPusher(config: any): boolean {
-  const shared = (app as any).pusher;
-
-  if (!shared || typeof shared.then !== 'function' || !app.forum) return false;
+  if (!app.forum) return false;
 
   return (
     sameConfigValue(app.forum.attribute('pusherKey'), config.pusherKey) &&
@@ -52,22 +65,34 @@ function canShareFlarumPusher(config: any): boolean {
   );
 }
 
+function directPusherSocket(): any | null {
+  const binding = (app as any).pusher;
+
+  if (!binding || typeof binding.then === 'function') return null;
+
+  const candidate = binding?.pusher || binding;
+
+  return candidate && typeof candidate.subscribe === 'function' ? candidate : null;
+}
+
 /**
- * Flarum's Pusher socket signs `private-user*` channels through /api/pusher/auth.
- * Social channels must use Social's own permission checks, so route only
- * `private-social-*` authorizations to Social while leaving Flarum's channels
+ * Flarum's own sockets sign Flarum channels through their extension auth
+ * endpoint. Social channels need Social's permission checks, so route only
+ * `private-social-*` authorizations to Social and leave every other channel
  * on the original authorizer.
  */
-function installSharedAuthorizer(socket: any): void {
-  if (!socket || sharedSockets.has(socket) || !socket.config) return;
+function installAuthorizer(target: any): void {
+  if (!target || authorizedSockets.has(target)) return;
 
-  const original = socket.config.channelAuthorizer;
+  const config = target.config;
 
-  if (typeof original !== 'function') return;
+  if (!config || typeof config.channelAuthorizer !== 'function') return;
 
-  sharedSockets.add(socket);
+  const original = config.channelAuthorizer;
 
-  socket.config.channelAuthorizer = (params: any, callback: any) => {
+  authorizedSockets.add(target);
+
+  config.channelAuthorizer = (params: any, callback: any) => {
     const name = String(params?.channelName || '');
 
     if (name.startsWith('private-social-')) {
@@ -92,6 +117,7 @@ function authorizeSocialChannel(params: any, callback: any): void {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${apiUrl()}${SOCIAL_AUTH_PATH}`, true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('Accept', 'application/json');
 
     if (app.session.csrfToken) {
       xhr.setRequestHeader('X-CSRF-Token', app.session.csrfToken);
@@ -107,23 +133,30 @@ function authorizeSocialChannel(params: any, callback: any): void {
           done(error);
         }
       } else {
-        done(new Error(`Social realtime auth failed (${xhr.status})`));
+        done(new Error(`Social websocket auth failed (${xhr.status})`));
       }
     };
 
-    xhr.onerror = () => done(new Error('Social realtime auth failed'));
+    xhr.onerror = () => done(new Error('Social websocket auth failed'));
     xhr.send(`socket_id=${encodeURIComponent(params.socketId || '')}&channel_name=${encodeURIComponent(params.channelName || '')}`);
   } catch (error) {
     done(error);
   }
 }
 
-function createOwnPusher(config: any): Promise<any> {
-  pusherLoading = import('pusher-js')
+function createOwnPusher(): Promise<any | null> {
+  if (ownPusher) return Promise.resolve(ownPusher);
+  if (ownPusherLoading) return ownPusherLoading;
+
+  const config = realtimeConfig();
+
+  if (!config.pusherKey) return Promise.resolve(null);
+
+  ownPusherLoading = import('pusher-js')
     .then((module: any) => {
       const Pusher = module.default || module.Pusher || module;
       const options: any = {
-        cluster: config.pusherCluster,
+        cluster: config.pusherCluster || 'mt1',
         forceTLS: true,
         authEndpoint: `${apiUrl()}${SOCIAL_AUTH_PATH}`,
         auth: {
@@ -138,192 +171,322 @@ function createOwnPusher(config: any): Promise<any> {
         options.httpHost = config.pusherHost;
       }
 
-      pusher = new Pusher(config.pusherKey, options);
+      ownPusher = new Pusher(config.pusherKey, options);
       ownsPusher = true;
 
-      return pusher;
+      return ownPusher;
     })
-    .catch((error) => {
-      pusherLoading = null;
-      throw error;
+    .catch(() => null)
+    .finally(() => {
+      ownPusherLoading = null;
     });
 
-  return pusherLoading;
+  return ownPusherLoading;
 }
 
-function getPusher(config: any): Promise<any> {
-  if (pusher) return Promise.resolve(pusher);
-  if (pusherLoading) return pusherLoading;
+async function resolveSocket(): Promise<any | null> {
+  if (driver() === 'pusher') {
+    const config = realtimeConfig();
 
-  if (canShareFlarumPusher(config)) {
-    pusherLoading = Promise.resolve((app as any).pusher)
-      .then((binding: any) => {
-        const socket = binding?.pusher || binding;
-
-        if (!socket || typeof socket.subscribe !== 'function') {
-          throw new Error('Flarum Pusher socket unavailable');
-        }
-
-        pusher = socket;
-        ownsPusher = false;
-        installSharedAuthorizer(socket);
-
-        return socket;
-      })
-      .catch(() => createOwnPusher(config));
-
-    return pusherLoading;
-  }
-
-  return createOwnPusher(config);
-}
-
-function scheduleIdleDisconnect(): void {
-  // Flarum owns the shared socket, so only close the socket Social created.
-  if (!ownsPusher) return;
-
-  clearIdleTimer();
-
-  idleTimer = window.setTimeout(() => {
-    idleTimer = null;
-
-    if (pusherChannels.size > 0 || !ownsPusher) return;
-
-    try {
-      pusher?.disconnect();
-    } catch (e) {
-      // no-op
+    if (!canShareFlarumPusher(config)) {
+      return createOwnPusher();
     }
 
-    pusher = null;
-    pusherLoading = null;
-    ownsPusher = false;
-  }, IDLE_DISCONNECT_MS);
+    const direct = directPusherSocket();
+
+    if (direct) {
+      pusherWaitSince = null;
+
+      return direct;
+    }
+
+    const binding = (app as any).pusher;
+
+    if (binding && typeof binding.then === 'function') {
+      try {
+        const resolved = await binding;
+        const candidate = resolved?.pusher || resolved;
+
+        if (candidate && typeof candidate.subscribe === 'function') {
+          sharedPusherSocket = candidate;
+          pusherWaitSince = null;
+
+          return candidate;
+        }
+      } catch (e) {
+        // Fall through to Social's own Pusher connection.
+      }
+    }
+
+    // flarum/pusher creates its socket in Application.mount, which can run
+    // just after Social's first component mounts. Wait briefly so Social can
+    // share that socket instead of opening a second connection.
+    pusherWaitSince ??= Date.now();
+
+    if (Date.now() - pusherWaitSince < 10000) {
+      return null;
+    }
+
+    return createOwnPusher();
+  }
+
+  return flarumSocket();
 }
 
-function subscribePusher(channel: string, callback: (data: any) => void, config: any): () => void {
-  let cancelled = false;
-  let subscribedName: string | null = null;
-  const mapped = mapPusherChannel(channel);
+function clearRetry(logical: string): void {
+  const timer = retryTimers.get(logical);
 
-  getPusher(config)
-    .then((client) => {
-      if (cancelled) return;
+  if (timer !== undefined) {
+    window.clearTimeout(timer);
+    retryTimers.delete(logical);
+  }
+}
 
-      clearIdleTimer();
+function scheduleRetry(entry: RealtimeEntry): void {
+  clearRetry(entry.logical);
 
-      let entry = pusherChannels.get(mapped);
+  retryTimers.set(
+    entry.logical,
+    window.setTimeout(() => {
+      retryTimers.delete(entry.logical);
 
-      if (!entry) {
-        const pusherChannel = client.subscribe(mapped);
-        entry = { channel: pusherChannel, callbacks: new Set() };
-
-        pusherChannel.bind('social', (data: any) => {
-          entry?.callbacks.forEach((cb) => cb(data));
-        });
-
-        pusherChannels.set(mapped, entry);
+      if (entries.has(entry.logical) && socket) {
+        subscribeOnSocket(entry);
       }
+    }, AUTH_RETRY_MS)
+  );
+}
 
-      entry.callbacks.add(callback);
-      subscribedName = mapped;
-    })
-    .catch(() => {
-      // Polling fallback remains active when Pusher cannot connect.
+function subscribeOnSocket(entry: RealtimeEntry): void {
+  if (!socket || entry.channel) return;
+
+  const mapped = mapChannel(entry.logical);
+
+  try {
+    const channel = socket.subscribe(mapped);
+    entry.channel = channel;
+
+    channel.bind('social', (data: any) => {
+      entry.callbacks.forEach((callback) => callback(data));
     });
 
-  return () => {
-    cancelled = true;
+    channel.bind('pusher:subscription_error', () => {
+      entry.channel = null;
+      clearRetry(entry.logical);
 
-    if (!subscribedName) return;
-
-    const entry = pusherChannels.get(subscribedName);
-    if (!entry) return;
-
-    entry.callbacks.delete(callback);
-
-    if (!entry.callbacks.size) {
       try {
-        pusher?.unsubscribe(subscribedName);
+        socket?.unsubscribe(mapped);
       } catch (e) {
         // no-op
       }
 
-      pusherChannels.delete(subscribedName);
-      scheduleIdleDisconnect();
-    }
-  };
+      scheduleRetry(entry);
+    });
+  } catch (error) {
+    entry.channel = null;
+    scheduleRetry(entry);
+  }
 }
 
-function subscribeCentrifugo(channel: string, callback: (data: any) => void): () => void {
-  if (!realtimeConfig().enabled) return () => {};
+function attach(target: any): void {
+  if (!target || !entries.size) return;
 
-  let centrifuge: any = null;
-  let cancelled = false;
+  if (socket !== target) {
+    entries.forEach((entry) => {
+      if (entry.channel && socket) {
+        try {
+          socket.unsubscribe(mapChannel(entry.logical));
+        } catch (e) {
+          // no-op
+        }
+      }
 
-  post('/social/realtime/token', { channel })
-    .then(async (response: any) => {
-      if (cancelled) return;
-
-      const { Centrifuge } = await import('centrifuge');
-      const tokens = response.data;
-
-      centrifuge = new Centrifuge(tokens.url, { token: tokens.token });
-      const subscription = centrifuge.newSubscription(tokens.channel, { token: tokens.subscriptionToken });
-      subscription.on('publication', (context: any) => callback(context.data));
-      subscription.subscribe();
-      centrifuge.connect();
-    })
-    .catch(() => {
-      // Polling fallback is handled by the component.
+      entry.channel = null;
     });
 
-  return () => {
-    cancelled = true;
+    if (ownsPusher && socket && socket !== target) {
+      try {
+        socket.disconnect();
+      } catch (e) {
+        // no-op
+      }
 
-    try {
-      centrifuge?.disconnect();
-    } catch (e) {
-      // no-op
+      ownPusher = null;
+      ownsPusher = false;
+    }
+
+    socket = target;
+  }
+
+  installAuthorizer(target);
+  entries.forEach((entry) => subscribeOnSocket(entry));
+  ensureSocketWatcher();
+}
+
+async function connect(): Promise<void> {
+  if (connecting) return;
+
+  connecting = true;
+
+  try {
+    const target = await resolveSocket();
+
+    if (target) attach(target);
+  } finally {
+    connecting = false;
+  }
+}
+
+function checkSocket(): void {
+  if (!entries.size) {
+    stopSocketWatcher();
+    return;
+  }
+
+  if (driver() === 'pusher') {
+    if (!canShareFlarumPusher(realtimeConfig())) {
+      if (!socket) connect();
+
+      return;
+    }
+
+    const direct = directPusherSocket();
+
+    if (direct && direct !== socket) {
+      connect();
+      return;
+    }
+
+    if (sharedPusherSocket && sharedPusherSocket !== socket) {
+      connect();
+      return;
+    }
+
+    if (!socket) connect();
+
+    return;
+  }
+
+  const target = flarumSocket();
+
+  if (target && target !== socket) {
+    connect();
+  } else if (!socket) {
+    connect();
+  }
+}
+
+function ensureSocketWatcher(): void {
+  if (socketTimer !== null || typeof window === 'undefined') return;
+
+  socketTimer = window.setInterval(checkSocket, SOCKET_CHECK_MS);
+}
+
+function stopSocketWatcher(): void {
+  if (socketTimer !== null) {
+    window.clearInterval(socketTimer);
+    socketTimer = null;
+  }
+}
+
+function unsubscribe(entry: RealtimeEntry): void {
+  const mapped = mapChannel(entry.logical);
+
+  clearRetry(entry.logical);
+
+  if (!entry.channel) return;
+
+  try {
+    socket?.unsubscribe(mapped);
+  } catch (e) {
+    // no-op
+  }
+
+  entry.channel = null;
+}
+
+/**
+ * Subscribe a component to one of Social's logical channels.
+ *
+ * The default transport is Flarum's bundled realtime extension and its shared
+ * websocket. With `realtime_driver = pusher`, Social reuses the existing
+ * flarum/pusher socket when possible. When neither is available this is a
+ * no-op and components keep using their polling fallback.
+ */
+export function subscribeRealtime(channel: string, callback: (data: any) => void): () => void {
+  if (!enabled()) return () => {};
+
+  let entry = entries.get(channel);
+
+  if (!entry) {
+    entry = { logical: channel, callbacks: new Set(), channel: null };
+    entries.set(channel, entry);
+  }
+
+  entry.callbacks.add(callback);
+  connect();
+  ensureSocketWatcher();
+
+  return () => {
+    const active = entries.get(channel);
+
+    if (!active) return;
+
+    active.callbacks.delete(callback);
+
+    if (!active.callbacks.size) {
+      unsubscribe(active);
+      entries.delete(channel);
+    }
+
+    if (!entries.size) {
+      stopSocketWatcher();
+      socket = null;
+      sharedPusherSocket = null;
+
+      if (ownsPusher && ownPusher) {
+        try {
+          ownPusher.disconnect();
+        } catch (e) {
+          // no-op
+        }
+      }
+
+      ownPusher = null;
+      ownsPusher = false;
+      pusherWaitSince = null;
     }
   };
 }
 
-export function subscribeRealtime(channel: string, callback: (data: any) => void): () => void {
-  const config = realtimeConfig();
-
-  if (!config.enabled) return () => {};
-
-  if (config.driver === 'pusher') {
-    return subscribePusher(channel, callback, config);
-  }
-
-  return subscribeCentrifugo(channel, callback);
+/**
+ * Whether Social currently has a live socket. Components use this to skip
+ * their periodic refresh while realtime is healthy, and to keep a safety net
+ * while it is connecting or reconnecting.
+ */
+export function isRealtimeConnected(): boolean {
+  return Boolean(entries.size && socket && socket.connection && socket.connection.state === 'connected');
 }
 
 export function disconnectRealtime(): void {
-  clearIdleTimer();
+  entries.forEach(unsubscribe);
+  entries.clear();
+  retryTimers.forEach((timer) => window.clearTimeout(timer));
+  retryTimers.clear();
+  stopSocketWatcher();
 
-  pusherChannels.forEach((_entry, channel) => {
+  if (ownsPusher && ownPusher) {
     try {
-      pusher?.unsubscribe(channel);
-    } catch (e) {
-      // no-op
-    }
-  });
-
-  pusherChannels.clear();
-
-  // Never disconnect Flarum's shared socket; Flarum owns its lifecycle.
-  if (ownsPusher) {
-    try {
-      pusher?.disconnect();
+      ownPusher.disconnect();
     } catch (e) {
       // no-op
     }
   }
 
-  pusher = null;
-  pusherLoading = null;
+  socket = null;
+  sharedPusherSocket = null;
+  ownPusher = null;
+  ownPusherLoading = null;
   ownsPusher = false;
+  pusherWaitSince = null;
 }

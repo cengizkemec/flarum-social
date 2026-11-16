@@ -6,7 +6,7 @@ use CengizKemec\Social\Media\MediaManager;
 use CengizKemec\Social\Models\Media;
 use CengizKemec\Social\Models\Story;
 use CengizKemec\Social\Models\StoryView;
-use CengizKemec\Social\Realtime\Centrifugo;
+use CengizKemec\Social\Realtime\FlarumRealtime;
 use CengizKemec\Social\Support\Access;
 use CengizKemec\Social\Support\SocialSettings;
 use CengizKemec\Social\Support\UserPresenter;
@@ -24,7 +24,7 @@ class StoryController extends AbstractSocialController
         TranslatorInterface $translator,
         protected UserPresenter $users,
         protected MediaManager $media,
-        protected Centrifugo $realtime
+        protected FlarumRealtime $realtime
     ) {
         parent::__construct($access, $settings, $translator);
     }
