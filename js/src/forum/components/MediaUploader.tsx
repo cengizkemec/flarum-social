@@ -7,17 +7,37 @@ export default class MediaUploader {
   progress = 0;
   error: string | null = null;
   input: HTMLInputElement | null = null;
+  private pending = 0;
+
+  maxAttachments(): number {
+    const configured = Number(SocialState.config?.media?.maxAttachments);
+
+    if (Number.isFinite(configured) && configured >= 0) {
+      return Math.floor(configured);
+    }
+
+    return 6;
+  }
 
   handleFiles(files: FileList | File[], count = 0, onUploading?: (value: boolean) => void, onUploaded?: (item: any) => void): void {
     if (!files || !files.length) return;
 
-    const config = SocialState.config?.media || {};
-    const remaining = Math.max(0, (config.maxAttachments || 6) - count);
+    const max = this.maxAttachments();
+    const remaining = Math.max(0, max - count - this.pending);
+
+    if (!remaining) {
+      this.error = app.translator.trans('cengizkemec-social.forum.media.limit', { max }) as string;
+      m.redraw();
+      return;
+    }
+
     const selected = Array.from(files).slice(0, remaining);
 
     if (!selected.length) return;
 
+    this.pending += selected.length;
     this.uploading = true;
+    this.progress = 0;
     this.error = null;
     onUploading?.(true);
 
@@ -25,10 +45,12 @@ export default class MediaUploader {
 
     const next = () => {
       done++;
+      this.pending = Math.max(0, this.pending - 1);
       this.progress = Math.round((done / selected.length) * 100);
-      if (done >= selected.length) {
+
+      if (done >= selected.length && this.pending === 0) {
         this.uploading = false;
-        parent.attrs.onUploading?.(false);
+        onUploading?.(false);
         m.redraw();
       }
     };
@@ -40,6 +62,7 @@ export default class MediaUploader {
       })
         .then((response: any) => {
           onUploaded?.(response.data);
+          m.redraw();
         })
         .catch((error: any) => {
           this.error = error.message;

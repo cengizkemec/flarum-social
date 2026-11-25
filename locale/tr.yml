@@ -203,6 +203,7 @@ cengizkemec-social:
       upload: "Yükle"
       uploaded: "Yükleme tamamlandı."
       attach: "Medya ekle"
+      limit: "En fazla {max} dosya ekleyebilirsin."
       hint: "Dosya başına en fazla {max} MB. Görsel, video ve belge."
       drop_hint: "Dosyaları yüklemek için buraya bırak."
       preview: "Medyayı önizle"

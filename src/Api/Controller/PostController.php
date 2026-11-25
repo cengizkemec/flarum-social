@@ -87,28 +87,32 @@ class PostController extends AbstractSocialController
 
         $visibility = $this->visibility($body['visibility'] ?? 'public');
 
-        $post = new Post();
-        $post->user_id = $actor->id;
-        $post->body = $text;
-        $post->visibility = $visibility;
-        $post->hashtags = $this->settings->bool('allow_hashtags') ? $this->parser->hashtags($text) : null;
-        $post->mentions = $this->settings->bool('allow_mentions')
-            ? $this->parser->mentionedUsers($text)->pluck('username')->all()
-            : null;
-        $post->is_announcement = $actor->can('social.moderatePosts') && ! empty($body['is_announcement']);
-        $post->created_at = \Illuminate\Support\now();
-        $post->updated_at = \Illuminate\Support\now();
-        $post->save();
+        $post = Post::query()->getConnection()->transaction(function () use ($actor, $text, $visibility, $mediaIds, $body) {
+            $post = new Post();
+            $post->user_id = $actor->id;
+            $post->body = $text;
+            $post->visibility = $visibility;
+            $post->hashtags = $this->settings->bool('allow_hashtags') ? $this->parser->hashtags($text) : null;
+            $post->mentions = $this->settings->bool('allow_mentions')
+                ? $this->parser->mentionedUsers($text)->pluck('username')->all()
+                : null;
+            $post->is_announcement = $actor->can('social.moderatePosts') && ! empty($body['is_announcement']);
+            $post->created_at = \Illuminate\Support\now();
+            $post->updated_at = \Illuminate\Support\now();
+            $post->save();
+
+            if (! empty($mediaIds)) {
+                $this->media->attachIds($mediaIds, $actor, 'post', $post->id, $visibility, $this->settings->int('max_attachments'));
+            }
+
+            return $post;
+        });
 
         $this->audit('social.post.created', [
             'post_id' => (int) $post->id,
             'visibility' => $visibility,
             'has_media' => ! empty($mediaIds),
         ]);
-
-        if (! empty($mediaIds)) {
-            $this->media->attachIds($mediaIds, $actor, 'post', $post->id, $visibility, $this->settings->int('max_attachments'));
-        }
 
         $post->load('user');
 
@@ -169,30 +173,34 @@ class PostController extends AbstractSocialController
 
         $visibility = array_key_exists('visibility', $body) ? $this->visibility($body['visibility']) : $post->visibility;
 
-        $post->body = $text;
-        $post->visibility = $visibility;
-        $post->hashtags = $this->settings->bool('allow_hashtags') ? $this->parser->hashtags($text) : null;
-        $post->mentions = $this->settings->bool('allow_mentions')
-            ? $this->parser->mentionedUsers($text)->pluck('username')->all()
-            : null;
-        $post->edited_at = \Illuminate\Support\now();
-        $post->updated_at = \Illuminate\Support\now();
-        $post->save();
+        $post = Post::query()->getConnection()->transaction(function () use ($post, $actor, $text, $visibility, $mediaProvided, $mediaIds) {
+            $post->body = $text;
+            $post->visibility = $visibility;
+            $post->hashtags = $this->settings->bool('allow_hashtags') ? $this->parser->hashtags($text) : null;
+            $post->mentions = $this->settings->bool('allow_mentions')
+                ? $this->parser->mentionedUsers($text)->pluck('username')->all()
+                : null;
+            $post->edited_at = \Illuminate\Support\now();
+            $post->updated_at = \Illuminate\Support\now();
+            $post->save();
+
+            if ($mediaProvided) {
+                $this->media->detach('post', $post->id);
+
+                if (! empty($mediaIds)) {
+                    $this->media->attachIds($mediaIds, $actor, 'post', $post->id, $visibility, $this->settings->int('max_attachments'));
+                }
+            } else {
+                $this->media->refreshForReference('post', $post->id);
+            }
+
+            return $post;
+        });
 
         $this->audit('social.post.updated', [
             'post_id' => (int) $post->id,
             'visibility' => $visibility,
         ]);
-
-        if ($mediaProvided) {
-            $this->media->detach('post', $post->id);
-
-            if (! empty($mediaIds)) {
-                $this->media->attachIds($mediaIds, $actor, 'post', $post->id, $visibility, $this->settings->int('max_attachments'));
-            }
-        } else {
-            $this->media->refreshForReference('post', $post->id);
-        }
 
         $presented = $this->presenter->presentMany(collect([$post->fresh('user')]), $actor)[0];
 

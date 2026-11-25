@@ -82,7 +82,14 @@ class MediaManager
             return;
         }
 
-        $media = Media::query()->whereIn('id', $ids)->get();
+        $media = Media::query()->whereIn('id', $ids)->get()->keyBy('id');
+        $missing = array_diff($ids, $media->keys()->all());
+
+        if (! empty($missing)) {
+            throw new \Flarum\Foundation\ValidationException([
+                'media' => app('translator')->trans('cengizkemec-social.api.errors.media_not_found'),
+            ]);
+        }
 
         foreach ($media as $item) {
             $this->attach($item, $actor, $referenceType, $referenceId, $visibility);

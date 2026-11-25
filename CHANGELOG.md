@@ -2,6 +2,16 @@
 
 All notable changes to Flarum Social are documented here.
 
+## 1.1.19 - 2026-11-25
+
+- Fixed media attachments in the Social post composer. Uploading a file no longer throws `Cannot read properties of undefined (reading 'onUploading')`, leaves the composer in a permanent uploading state, hides the attachment preview or keeps the publish button disabled.
+- Upload state, progress and attachment previews now update after every file. Failed uploads reset the uploader and show the error instead of blocking publishing.
+- Added the configured attachment limit to the composer and prevented overlapping uploads from exceeding it.
+- Media IDs are now validated before a post is saved, and post creation and editing run in a transaction. A missing, foreign or over-limit attachment can no longer leave an empty or partially attached post behind.
+- The Social header logo now opens the forum home page instead of the Social feed, matching the Flarum header logo.
+- Added the media attachment limit text in English and Turkish.
+- No database changes are required.
+
 ## 1.1.18 - 2026-11-16
 
 - Removed Social's own Centrifugo configuration. The old realtime enable switch, driver switch to Centrifugo, WebSocket/API URLs, API key, HMAC secret and polling interval settings are gone from the ACP.

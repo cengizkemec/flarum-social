@@ -109,6 +109,10 @@ app.initializers.add('cengizkemec-social', () => {
 
         if (url.origin !== window.location.origin) return;
 
+        // The site root is the forum home. Let the browser navigate there so
+        // the Flarum header and the Social brand both use the same target.
+        if (url.pathname === '/') return;
+
         // Keep the SPA alive for all normal Flarum routes, so the persistent
         // voice panel keeps its LiveKit connection while browsing the forum.
         // Admin, API, asset and logout URLs intentionally use full navigation.

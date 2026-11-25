@@ -105,7 +105,12 @@ export default class SocialHeader {
           },
           m('i', { className: 'fas fa-bars' })
         ),
-        m('a', { className: 'SocialBrand', href: app.route('social.index') }, [
+        m('a', {
+          className: 'SocialBrand',
+          href: app.forum.attribute<string>('baseUrl') || '/',
+          title: app.translator.trans('cengizkemec-social.forum.nav.forum'),
+          'aria-label': app.translator.trans('cengizkemec-social.forum.nav.forum'),
+        }, [
           m(
             'span',
             { className: 'SocialBrand-icon' + (logoUrl ? ' SocialBrand-icon--logo' : '') },

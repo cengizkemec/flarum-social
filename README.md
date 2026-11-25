@@ -60,7 +60,7 @@ It is a native Flarum extension. It uses Flarum users, sessions, permissions, tr
 | --- | --- |
 | ![Forum widgets](docs/screenshots/forum-widgets.png) | ![Mobile layout](docs/screenshots/mobile.png) |
 
-More screenshots are in [docs/screenshots](docs/screenshots). Release 1.1.5 notes are in [docs/RELEASE_NOTES-1.1.5.md](docs/RELEASE_NOTES-1.1.5.md).
+More screenshots are in [docs/screenshots](docs/screenshots). Recent release notes are in [docs/RELEASE_NOTES-1.1.19.md](docs/RELEASE_NOTES-1.1.19.md); older notes are in [docs](docs).
 
 ## Requirements
 
@@ -154,6 +154,7 @@ Social does not maintain a second profile. It displays the Flarum display name, 
 - [Cleanup and retention](docs/CLEANUP.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Security audit](docs/SECURITY-AUDIT.md)
+- [Release notes 1.1.19](docs/RELEASE_NOTES-1.1.19.md)
 - [Release notes 1.1.5](docs/RELEASE_NOTES-1.1.5.md)
 
 ## Tests

@@ -175,9 +175,13 @@ export default class PostComposer {
               ? m(MediaUploader, {
                   count: this.media.length,
                   oncreate: (vnode: any) => (this.uploader = vnode.state as MediaUploader),
-                  onUploading: (value: boolean) => (this.uploading = value),
+                  onUploading: (value: boolean) => {
+                    this.uploading = value;
+                    m.redraw();
+                  },
                   onUploaded: (item: any) => {
                     this.media.push(item);
+                    m.redraw();
                   },
                 })
               : null,
